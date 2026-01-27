@@ -1,0 +1,89 @@
+/* GENERAL PAGE */
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+  margin: 0;
+  padding: 10px;
+  text-align: center;
+}
+
+/* HEADER */
+h2 {
+  background: #1f3c88;
+  color: white;
+  padding: 14px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  font-size: 22px;
+}
+
+/* TOP CONTROLS */
+.top {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+/* MODE BUTTONS */
+.modes {
+  margin-bottom: 10px;
+}
+
+/* COLOR INPUT */
+.colors {
+  margin-bottom: 10px;
+}
+
+/* ACTION BUTTONS */
+.actions {
+  margin-top: 10px;
+}
+
+/* BUTTON DESIGN */
+button {
+  background: #1f3c88;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  margin: 6px;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #162c63;
+}
+
+/* INPUT & SELECT */
+input, select {
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #aaa;
+  font-size: 15px;
+}
+
+/* CANVAS */
+canvas {
+  border: 2px solid #333;
+  background: white;
+  margin-top: 10px;
+  max-width: 100%;
+  border-radius: 6px;
+}
+
+/* USED COLORS */
+#usedColors {
+  margin-top: 10px;
+}
+
+#usedColors div {
+  display: inline-block;
+  margin: 4px;
+  padding: 6px 12px;
+  color: white;
+  border-radius: 4px;
+  font-size: 13px;
+}
