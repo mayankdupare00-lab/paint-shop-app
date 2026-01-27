@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Paint Visualizer - Shop App</title>
+
+  <!-- Mobile friendly -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Design file (we add in Step 2) -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- App identity (we add in Step 5) -->
+  <link rel="manifest" href="manifest.json">
+
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <h2>🎨 Paint Visualizer</h2>
+
+  <!-- TOP CONTROLS -->
+  <div class="top">
+
+    <!-- Interior / Exterior -->
+    <select id="paintType">
+      <option value="">Select Area</option>
+      <option value="interior">Interior</option>
+      <option value="exterior">Exterior</option>
+    </select>
+
+    <!-- Upload image -->
+    <input type="file" id="imageUpload" accept="image/*">
+
+  </div>
+
+  <!-- PART SELECTION -->
+  <div class="modes">
+    <button onclick="setMode('wall')">Wall</button>
+    <button onclick="setMode('roof')">Roof</button>
+    <button onclick="setMode('door')">Door</button>
+  </div>
+
+  <!-- COLOR INPUT -->
+  <div class="colors">
+    <input type="text" id="colorCode" placeholder="Enter Color Code (Example: AP101)">
+    <button onclick="applyColor()">Apply Color</button>
+  </div>
+
+  <!-- CANVAS -->
+  <canvas id="canvas" width="650" height="420"></canvas>
+
+  <!-- ACTION BUTTONS -->
+  <div class="actions">
+    <button onclick="undo()">Undo</button>
+    <button onclick="resetCanvas()">Reset</button>
+    <button onclick="downloadImage()">Download Image</button>
+  </div>
+
+  <!-- USED COLORS -->
+  <h3>Used Colors</h3>
+  <div id="usedColors"></div>
+
+  <!-- PAINT ENGINE (library) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+
+  <!-- YOUR LOGIC FILE (we add in Step 3) -->
+  <script src="script.js"></script>
+
+</body>
+</html>
