@@ -1,94 +1,93 @@
 window.onload = function () {
 
-  const canvas = new fabric.Canvas('canvas');
+  // Create canvas
+  var canvas = new fabric.Canvas('canvas');
   let currentMode = "wall";
   let history = [];
 
-  // MODE SELECTION
-  function setMode(mode) {
-    currentMode = mode;
-    alert("Selected: " + mode);
+  // Save state for undo
+  function saveState() {
+    history.push(JSON.stringify(canvas));
+    if (history.length > 20) history.shift();
   }
-  window.setMode = setMode;
 
-  // IMAGE UPLOAD
-  document.getElementById("imageUpload").addEventListener("change", function (e) {
-    const reader = new FileReader();
+  // Upload image
+  document.getElementById('imageUpload').addEventListener('change', function (e) {
+    var reader = new FileReader();
 
     reader.onload = function (event) {
       fabric.Image.fromURL(event.target.result, function (img) {
+
+        // Clear old canvas
         canvas.clear();
-        img.scaleToWidth(700);
-        canvas.add(img);
-        canvas.sendToBack(img);
-        saveState();
+
+        // Resize image to fit canvas
+        img.scaleToWidth(canvas.width);
+        img.scaleToHeight(canvas.height);
+
+        // Lock image (background)
+        img.selectable = false;
+        img.evented = false;
+
+        canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+
       });
     };
 
     reader.readAsDataURL(e.target.files[0]);
   });
 
-  // APPLY COLOR
-  function applyColor() {
-    const colorCode = document.getElementById("colorCode").value;
+  // Mode selection
+  window.setMode = function (mode) {
+    currentMode = mode;
+    alert("Mode selected: " + mode);
+  };
 
-    const colorBox = new fabric.Rect({
+  // Apply color
+  window.applyColor = function () {
+    var colorCode = document.getElementById("colorCode").value;
+    if (!colorCode) {
+      alert("Enter color code first");
+      return;
+    }
+
+    var rect = new fabric.Rect({
       left: 100,
       top: 100,
-      width: 300,
-      height: 200,
-      fill: getColorFromCode(colorCode),
-      opacity: 0.4,
+      width: 200,
+      height: 150,
+      fill: "rgba(255,0,0,0.4)",
       selectable: true
     });
 
-    canvas.add(colorBox);
+    canvas.add(rect);
     saveState();
-  }
-  window.applyColor = applyColor;
 
-  // SIMPLE COLOR DATABASE
-  function getColorFromCode(code) {
-    const colors = {
-      "AP101": "#f5e6cc",
-      "AP102": "#d9c2a3",
-      "AP103": "#cfa57a",
-      "AP201": "#c2d6e8",
-      "AP202": "#8fb3d9",
-      "AP301": "#d8e6c2"
-    };
+    // Show used color
+    var used = document.getElementById("usedColors");
+    var tag = document.createElement("span");
+    tag.innerText = colorCode + " ";
+    used.appendChild(tag);
+  };
 
-    return colors[code] || "#cccccc";
-  }
-
-  // UNDO
-  function undo() {
-    if (history.length > 1) {
-      history.pop();
-      canvas.loadFromJSON(history[history.length - 1], canvas.renderAll.bind(canvas));
+  // Undo
+  window.undo = function () {
+    if (history.length > 0) {
+      canvas.loadFromJSON(history.pop(), canvas.renderAll.bind(canvas));
     }
-  }
-  window.undo = undo;
+  };
 
-  // RESET
-  function resetCanvas() {
+  // Reset
+  window.resetCanvas = function () {
     canvas.clear();
-    history = [];
-  }
-  window.resetCanvas = resetCanvas;
+  };
 
-  // SAVE STATE
-  function saveState() {
-    history.push(JSON.stringify(canvas));
-  }
-
-  // DOWNLOAD
-  function downloadImage() {
-    const link = document.createElement("a");
-    link.download = "paint-preview.png";
+  // Download
+  window.downloadImage = function () {
+    var link = document.createElement("a");
+    link.download = "paint-result.png";
     link.href = canvas.toDataURL();
     link.click();
-  }
-  window.downloadImage = downloadImage;
+  };
 
 };
