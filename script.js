@@ -1,93 +1,92 @@
-window.onload = function () {
+// Create Fabric canvas
+const canvas = new fabric.Canvas('canvas');
 
-  // Create canvas
-  var canvas = new fabric.Canvas('canvas');
-  let currentMode = "wall";
-  let history = [];
+// Track current mode
+let currentMode = 'wall';
 
-  // Save state for undo
-  function saveState() {
-    history.push(JSON.stringify(canvas));
-    if (history.length > 20) history.shift();
+// Set mode (wall / roof / door)
+function setMode(mode) {
+  currentMode = mode;
+  alert("Selected: " + mode);
+}
+
+// Handle image upload
+document.getElementById('imageUpload').addEventListener('change', function (e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function (event) {
+    fabric.Image.fromURL(event.target.result, function (img) {
+
+      // Clear old canvas
+      canvas.clear();
+
+      // Resize image to fit canvas
+      const scaleX = canvas.width / img.width;
+      const scaleY = canvas.height / img.height;
+      const scale = Math.min(scaleX, scaleY);
+
+      img.scale(scale);
+      img.set({
+        left: (canvas.width - img.width * scale) / 2,
+        top: (canvas.height - img.height * scale) / 2,
+        selectable: false
+      });
+
+      canvas.add(img);
+      canvas.sendToBack(img);
+    });
+  };
+
+  reader.readAsDataURL(file);
+});
+
+// Apply color overlay
+function applyColor() {
+  const code = document.getElementById('colorCode').value.trim();
+  if (!code) {
+    alert("Enter color code first");
+    return;
   }
 
-  // Upload image
-  document.getElementById('imageUpload').addEventListener('change', function (e) {
-    var reader = new FileReader();
+  // Temporary color mapping (demo)
+  const colorMap = {
+    "AP101": "rgba(255, 200, 150, 0.5)",
+    "AP102": "rgba(200, 255, 200, 0.5)",
+    "AP103": "rgba(200, 200, 255, 0.5)"
+  };
 
-    reader.onload = function (event) {
-      fabric.Image.fromURL(event.target.result, function (img) {
+  const color = colorMap[code] || "rgba(255, 0, 0, 0.4)";
 
-        // Clear old canvas
-        canvas.clear();
-
-        // Resize image to fit canvas
-        img.scaleToWidth(canvas.width);
-        img.scaleToHeight(canvas.height);
-
-        // Lock image (background)
-        img.selectable = false;
-        img.evented = false;
-
-        canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
-
-      });
-    };
-
-    reader.readAsDataURL(e.target.files[0]);
+  const rect = new fabric.Rect({
+    left: 100,
+    top: 100,
+    width: 300,
+    height: 200,
+    fill: color,
+    selectable: true
   });
 
-  // Mode selection
-  window.setMode = function (mode) {
-    currentMode = mode;
-    alert("Mode selected: " + mode);
-  };
+  canvas.add(rect);
+}
 
-  // Apply color
-  window.applyColor = function () {
-    var colorCode = document.getElementById("colorCode").value;
-    if (!colorCode) {
-      alert("Enter color code first");
-      return;
-    }
+// Undo last action
+function undo() {
+  const obj = canvas._objects.pop();
+  if (obj) canvas.renderAll();
+}
 
-    var rect = new fabric.Rect({
-      left: 100,
-      top: 100,
-      width: 200,
-      height: 150,
-      fill: "rgba(255,0,0,0.4)",
-      selectable: true
-    });
+// Reset canvas
+function resetCanvas() {
+  canvas.clear();
+}
 
-    canvas.add(rect);
-    saveState();
-
-    // Show used color
-    var used = document.getElementById("usedColors");
-    var tag = document.createElement("span");
-    tag.innerText = colorCode + " ";
-    used.appendChild(tag);
-  };
-
-  // Undo
-  window.undo = function () {
-    if (history.length > 0) {
-      canvas.loadFromJSON(history.pop(), canvas.renderAll.bind(canvas));
-    }
-  };
-
-  // Reset
-  window.resetCanvas = function () {
-    canvas.clear();
-  };
-
-  // Download
-  window.downloadImage = function () {
-    var link = document.createElement("a");
-    link.download = "paint-result.png";
-    link.href = canvas.toDataURL();
-    link.click();
-  };
-
-};
+// Download image
+function downloadImage() {
+  const link = document.createElement('a');
+  link.download = 'paint-preview.png';
+  link.href = canvas.toDataURL();
+  link.click();
+}
