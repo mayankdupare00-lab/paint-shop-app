@@ -10,12 +10,12 @@ let currentMode = null;
 let selectedArea = null;
 
 // ===============================
-// MODE SELECTION
+// MODE
 // ===============================
 function setMode(mode) {
   currentMode = mode;
   selectedArea = null;
-  alert("Click on the " + mode + " area");
+  alert("Click on " + mode);
 }
 
 // ===============================
@@ -27,7 +27,7 @@ document.getElementById('imageUpload').addEventListener('change', function (e) {
 
   const reader = new FileReader();
   reader.onload = function (event) {
-    fabric.Image.fromURL(event.target.result, function (img) {
+    fabric.Image.fromURL(event.target.result, img => {
       canvas.clear();
 
       const scale = Math.min(
@@ -52,10 +52,10 @@ document.getElementById('imageUpload').addEventListener('change', function (e) {
 });
 
 // ===============================
-// CREATE EDITABLE PAINT AREAS
+// PAINT AREAS (EDITABLE)
 // ===============================
 function createPaintAreas() {
-  const common = {
+  const base = {
     fill: 'rgba(0,0,0,0)',
     selectable: true,
     hasControls: true,
@@ -64,16 +64,16 @@ function createPaintAreas() {
   };
 
   canvas.add(
-    new fabric.Rect({ left:150, top:220, width:300, height:180, name:'wall', ...common }),
-    new fabric.Rect({ left:160, top:120, width:280, height:80, name:'roof', ...common }),
-    new fabric.Rect({ left:260, top:270, width:70, height:130, name:'door', ...common })
+    new fabric.Rect({ left:150, top:220, width:300, height:180, name:'wall', ...base }),
+    new fabric.Rect({ left:160, top:120, width:280, height:80, name:'roof', ...base }),
+    new fabric.Rect({ left:260, top:270, width:70, height:130, name:'door', ...base })
   );
 }
 
 // ===============================
 // SELECT AREA
 // ===============================
-canvas.on('mouse:down', (e) => {
+canvas.on('mouse:down', e => {
   if (!currentMode || !e.target) return;
   if (e.target.name === currentMode) {
     selectedArea = e.target;
@@ -84,33 +84,32 @@ canvas.on('mouse:down', (e) => {
 });
 
 // ===============================
-// APPLY DARK REALISTIC PAINT
+// APPLY ULTRA DARK REAL PAINT
 // ===============================
 function applyColor() {
   if (!selectedArea) {
-    alert("Select an area first");
+    alert("Select area first");
     return;
   }
 
   const code = document.getElementById('colorCode').value.trim().toUpperCase();
 
+  // VERY DARK PAINT COLORS
   const colorMap = {
-    AP101: "#8B2E2E", // deep brick red
-    AP102: "#2F6B3F", // dark green
-    AP103: "#2C3E73"  // deep blue
+    AP101: "#6A1F1F", // deep brick red
+    AP102: "#1F4F2F", // forest green
+    AP103: "#1F2F5A"  // navy blue
   };
 
-  const color = colorMap[code] || "#7A2E2E";
+  const paintColor = colorMap[code] || "#5A1F1F";
 
   selectedArea.set({
-    fill: color,
+    fill: paintColor,
     opacity: 1,
-    globalCompositeOperation: 'overlay',
+    globalCompositeOperation: 'source-atop',
     shadow: new fabric.Shadow({
-      color: 'rgba(0,0,0,0.35)',
-      blur: 10,
-      offsetX: 0,
-      offsetY: 0
+      color: 'rgba(0,0,0,0.45)',
+      blur: 18
     })
   });
 
