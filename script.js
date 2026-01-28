@@ -1,92 +1,77 @@
-// Create Fabric canvas
-const canvas = new fabric.Canvas('canvas');
+window.onload = function () {
 
-// Track current mode
-let currentMode = 'wall';
+  // Create Fabric canvas AFTER page is ready
+  const canvas = new fabric.Canvas('canvas');
 
-// Set mode (wall / roof / door)
-function setMode(mode) {
-  currentMode = mode;
-  alert("Selected: " + mode);
-}
+  let currentMode = 'wall';
 
-// Handle image upload
-document.getElementById('imageUpload').addEventListener('change', function (e) {
-  const file = e.target.files[0];
-  if (!file) return;
+  // Expose canvas globally (important)
+  window.canvas = canvas;
 
-  const reader = new FileReader();
+  // Set mode (wall / roof / door)
+  window.setMode = function (mode) {
+    currentMode = mode;
+    alert("Selected: " + mode);
+  };
 
-  reader.onload = function (event) {
-    fabric.Image.fromURL(event.target.result, function (img) {
+  // Handle image upload
+  document.getElementById('imageUpload').addEventListener('change', function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-      // Clear old canvas
-      canvas.clear();
+    const reader = new FileReader();
 
-      // Resize image to fit canvas
-      const scaleX = canvas.width / img.width;
-      const scaleY = canvas.height / img.height;
-      const scale = Math.min(scaleX, scaleY);
+    reader.onload = function (event) {
+      fabric.Image.fromURL(event.target.result, function (img) {
 
-      img.scale(scale);
-      img.set({
-        left: (canvas.width - img.width * scale) / 2,
-        top: (canvas.height - img.height * scale) / 2,
-        selectable: false
+        canvas.clear();
+
+        const scaleX = canvas.width / img.width;
+        const scaleY = canvas.height / img.height;
+        const scale = Math.min(scaleX, scaleY);
+
+        img.scale(scale);
+        img.set({
+          left: (canvas.width - img.width * scale) / 2,
+          top: (canvas.height - img.height * scale) / 2,
+          selectable: false,
+          evented: false
+        });
+
+        canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
       });
+    };
 
-      canvas.add(img);
-      canvas.sendToBack(img);
-    });
-  };
-
-  reader.readAsDataURL(file);
-});
-
-// Apply color overlay
-function applyColor() {
-  const code = document.getElementById('colorCode').value.trim();
-  if (!code) {
-    alert("Enter color code first");
-    return;
-  }
-
-  // Temporary color mapping (demo)
-  const colorMap = {
-    "AP101": "rgba(255, 200, 150, 0.5)",
-    "AP102": "rgba(200, 255, 200, 0.5)",
-    "AP103": "rgba(200, 200, 255, 0.5)"
-  };
-
-  const color = colorMap[code] || "rgba(255, 0, 0, 0.4)";
-
-  const rect = new fabric.Rect({
-    left: 100,
-    top: 100,
-    width: 300,
-    height: 200,
-    fill: color,
-    selectable: true
+    reader.readAsDataURL(file);
   });
 
-  canvas.add(rect);
-}
+  // Apply color overlay
+  window.applyColor = function () {
+    const code = document.getElementById('colorCode').value.trim();
+    if (!code) {
+      alert("Enter color code first");
+      return;
+    }
 
-// Undo last action
-function undo() {
-  const obj = canvas._objects.pop();
-  if (obj) canvas.renderAll();
-}
+    const colorMap = {
+      "AP101": "rgba(255, 200, 150, 0.45)",
+      "AP102": "rgba(200, 255, 200, 0.45)",
+      "AP103": "rgba(200, 200, 255, 0.45)"
+    };
 
-// Reset canvas
-function resetCanvas() {
-  canvas.clear();
-}
+    const color = colorMap[code] || "rgba(255, 0, 0, 0.4)";
 
-// Download image
-function downloadImage() {
-  const link = document.createElement('a');
-  link.download = 'paint-preview.png';
-  link.href = canvas.toDataURL();
-  link.click();
-}
+    const rect = new fabric.Rect({
+      left: 120,
+      top: 120,
+      width: 350,
+      height: 220,
+      fill: color,
+      selectable: true
+    });
+
+    canvas.add(rect);
+  };
+
+  // Undo last action
+  window.undo = function () {
