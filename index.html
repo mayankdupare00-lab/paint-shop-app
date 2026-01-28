@@ -1,36 +1,55 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Canvas Image Test</title>
+  <title>Offline Paint App</title>
+
+  <!-- Fabric.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    canvas {
+      border: 2px solid red;
+      margin-top: 10px;
+    }
+    .controls {
+      margin-bottom: 10px;
+    }
+    button {
+      margin-right: 5px;
+    }
+  </style>
 </head>
 <body>
 
-  <h2>Canvas Upload Test</h2>
+  <h2>Offline Paint App</h2>
 
-  <input type="file" id="imageUpload" accept="image/*">
+  <div class="controls">
+    <input type="file" id="imageUpload">
+    <br><br>
 
-  <br><br>
+    <button onclick="setMode('wall')">Wall</button>
+    <button onclick="setMode('roof')">Roof</button>
+    <button onclick="setMode('door')">Door</button>
 
-  <canvas id="canvas" width="800" height="500" style="border:2px solid red;"></canvas>
+    <br><br>
 
-  <script>
-    const input = document.getElementById("imageUpload");
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
+    <input type="text" id="colorCode" placeholder="Enter Color Code (AP101)">
+    <button onclick="applyColor()">Apply Color</button>
 
-    input.addEventListener("change", function () {
-      const file = input.files[0];
-      if (!file) return;
+    <br><br>
 
-      const img = new Image();
-      img.onload = function () {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      };
-      img.src = URL.createObjectURL(file);
-    });
-  </script>
+    <button onclick="undo()">Undo</button>
+    <button onclick="resetCanvas()">Reset</button>
+    <button onclick="downloadImage()">Download</button>
+  </div>
 
+  <canvas id="canvas" width="800" height="500"></canvas>
+
+  <script src="script.js"></script>
 </body>
 </html>
