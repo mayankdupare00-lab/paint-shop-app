@@ -9,16 +9,13 @@ const canvas = new fabric.Canvas('canvas', {
 let currentMode = null;
 let selectedArea = null;
 
-// Paint areas
-let wallArea, roofArea, doorArea;
-
 // ===============================
 // MODE SELECTION
 // ===============================
 function setMode(mode) {
   currentMode = mode;
   selectedArea = null;
-  alert("Now click on the " + mode + " area");
+  alert("Click on the " + mode + " area");
 }
 
 // ===============================
@@ -48,78 +45,46 @@ document.getElementById('imageUpload').addEventListener('change', function (e) {
 
       canvas.add(img);
       canvas.sendToBack(img);
-
       createPaintAreas();
     });
   };
-
   reader.readAsDataURL(file);
 });
 
 // ===============================
-// CREATE PAINT AREAS (EDITABLE)
+// CREATE EDITABLE PAINT AREAS
 // ===============================
 function createPaintAreas() {
-
-  const commonProps = {
+  const common = {
     fill: 'rgba(0,0,0,0)',
     selectable: true,
     hasControls: true,
-    hasBorders: true,
-    lockRotation: false,
-    cornerColor: 'blue',
     cornerSize: 10,
     transparentCorners: false
   };
 
-  wallArea = new fabric.Rect({
-    left: 150,
-    top: 220,
-    width: 300,
-    height: 180,
-    name: 'wall',
-    ...commonProps
-  });
-
-  roofArea = new fabric.Rect({
-    left: 160,
-    top: 120,
-    width: 280,
-    height: 80,
-    name: 'roof',
-    ...commonProps
-  });
-
-  doorArea = new fabric.Rect({
-    left: 260,
-    top: 270,
-    width: 70,
-    height: 130,
-    name: 'door',
-    ...commonProps
-  });
-
-  canvas.add(wallArea, roofArea, doorArea);
+  canvas.add(
+    new fabric.Rect({ left:150, top:220, width:300, height:180, name:'wall', ...common }),
+    new fabric.Rect({ left:160, top:120, width:280, height:80, name:'roof', ...common }),
+    new fabric.Rect({ left:260, top:270, width:70, height:130, name:'door', ...common })
+  );
 }
 
 // ===============================
-// AREA SELECTION BY CLICK
+// SELECT AREA
 // ===============================
-canvas.on('mouse:down', function (opt) {
-  const obj = opt.target;
-  if (!obj || !currentMode) return;
-
-  if (obj.name === currentMode) {
-    selectedArea = obj;
-    canvas.setActiveObject(obj);
+canvas.on('mouse:down', (e) => {
+  if (!currentMode || !e.target) return;
+  if (e.target.name === currentMode) {
+    selectedArea = e.target;
+    canvas.setActiveObject(e.target);
   } else {
-    alert("Wrong area. Please select: " + currentMode);
-    canvas.discardActiveObject();
+    alert("Wrong area selected");
   }
 });
 
 // ===============================
-// APPLY COLOR (DARK + REALISTIC)
+// APPLY DARK REALISTIC PAINT
 // ===============================
 function applyColor() {
   if (!selectedArea) {
@@ -128,34 +93,36 @@ function applyColor() {
   }
 
   const code = document.getElementById('colorCode').value.trim().toUpperCase();
-  if (!code) {
-    alert("Enter color code");
-    return;
-  }
 
   const colorMap = {
-    "AP101": "rgba(210,120,100,0.85)", // deep wall red
-    "AP102": "rgba(140,190,140,0.85)", // green
-    "AP103": "rgba(140,140,200,0.85)"  // blue
+    AP101: "#8B2E2E", // deep brick red
+    AP102: "#2F6B3F", // dark green
+    AP103: "#2C3E73"  // deep blue
   };
 
-  const color = colorMap[code] || "rgba(180,80,80,0.85)";
+  const color = colorMap[code] || "#7A2E2E";
 
   selectedArea.set({
     fill: color,
-    globalCompositeOperation: 'multiply',
-    opacity: 0.9
+    opacity: 1,
+    globalCompositeOperation: 'overlay',
+    shadow: new fabric.Shadow({
+      color: 'rgba(0,0,0,0.35)',
+      blur: 10,
+      offsetX: 0,
+      offsetY: 0
+    })
   });
 
   canvas.renderAll();
 }
 
 // ===============================
-// UNDO / RESET / DOWNLOAD
+// CONTROLS
 // ===============================
 function undo() {
   if (selectedArea) {
-    selectedArea.set('fill', 'rgba(0,0,0,0)');
+    selectedArea.set({ fill:'rgba(0,0,0,0)', shadow:null });
     canvas.renderAll();
   }
 }
@@ -167,9 +134,6 @@ function resetCanvas() {
 function downloadImage() {
   const link = document.createElement('a');
   link.download = 'paint-preview.png';
-  link.href = canvas.toDataURL({
-    format: 'png',
-    quality: 1
-  });
+  link.href = canvas.toDataURL({ format:'png', quality:1 });
   link.click();
 }
