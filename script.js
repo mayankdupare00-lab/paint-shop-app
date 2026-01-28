@@ -2,7 +2,8 @@
 // CANVAS SETUP
 // ===============================
 const canvas = new fabric.Canvas('canvas', {
-  selection: false
+  selection: false,
+  preserveObjectStacking: true
 });
 
 let currentMode = null;
@@ -16,7 +17,8 @@ let wallArea, roofArea, doorArea;
 // ===============================
 function setMode(mode) {
   currentMode = mode;
-  alert("Click on the " + mode + " area to paint");
+  selectedArea = null;
+  alert("Now click on the " + mode + " area");
 }
 
 // ===============================
@@ -55,18 +57,28 @@ document.getElementById('imageUpload').addEventListener('change', function (e) {
 });
 
 // ===============================
-// CREATE PAINT AREAS
+// CREATE PAINT AREAS (EDITABLE)
 // ===============================
 function createPaintAreas() {
+
+  const commonProps = {
+    fill: 'rgba(0,0,0,0)',
+    selectable: true,
+    hasControls: true,
+    hasBorders: true,
+    lockRotation: false,
+    cornerColor: 'blue',
+    cornerSize: 10,
+    transparentCorners: false
+  };
 
   wallArea = new fabric.Rect({
     left: 150,
     top: 220,
     width: 300,
     height: 180,
-    fill: 'rgba(0,0,0,0)',
-    selectable: true,
-    name: 'wall'
+    name: 'wall',
+    ...commonProps
   });
 
   roofArea = new fabric.Rect({
@@ -74,9 +86,8 @@ function createPaintAreas() {
     top: 120,
     width: 280,
     height: 80,
-    fill: 'rgba(0,0,0,0)',
-    selectable: true,
-    name: 'roof'
+    name: 'roof',
+    ...commonProps
   });
 
   doorArea = new fabric.Rect({
@@ -84,9 +95,8 @@ function createPaintAreas() {
     top: 270,
     width: 70,
     height: 130,
-    fill: 'rgba(0,0,0,0)',
-    selectable: true,
-    name: 'door'
+    name: 'door',
+    ...commonProps
   });
 
   canvas.add(wallArea, roofArea, doorArea);
@@ -101,13 +111,15 @@ canvas.on('mouse:down', function (opt) {
 
   if (obj.name === currentMode) {
     selectedArea = obj;
+    canvas.setActiveObject(obj);
   } else {
-    alert("Wrong area selected. Choose " + currentMode);
+    alert("Wrong area. Please select: " + currentMode);
+    canvas.discardActiveObject();
   }
 });
 
 // ===============================
-// APPLY COLOR (REALISTIC BLEND)
+// APPLY COLOR (DARK + REALISTIC)
 // ===============================
 function applyColor() {
   if (!selectedArea) {
@@ -115,23 +127,24 @@ function applyColor() {
     return;
   }
 
-  const code = document.getElementById('colorCode').value.trim();
+  const code = document.getElementById('colorCode').value.trim().toUpperCase();
   if (!code) {
     alert("Enter color code");
     return;
   }
 
   const colorMap = {
-    "AP101": "rgba(255,200,150,0.55)",
-    "AP102": "rgba(200,255,200,0.55)",
-    "AP103": "rgba(200,200,255,0.55)"
+    "AP101": "rgba(210,120,100,0.85)", // deep wall red
+    "AP102": "rgba(140,190,140,0.85)", // green
+    "AP103": "rgba(140,140,200,0.85)"  // blue
   };
 
-  const color = colorMap[code] || "rgba(255,0,0,0.5)";
+  const color = colorMap[code] || "rgba(180,80,80,0.85)";
 
   selectedArea.set({
     fill: color,
-    globalCompositeOperation: 'multiply'
+    globalCompositeOperation: 'multiply',
+    opacity: 0.9
   });
 
   canvas.renderAll();
@@ -154,6 +167,9 @@ function resetCanvas() {
 function downloadImage() {
   const link = document.createElement('a');
   link.download = 'paint-preview.png';
-  link.href = canvas.toDataURL();
+  link.href = canvas.toDataURL({
+    format: 'png',
+    quality: 1
+  });
   link.click();
 }
