@@ -1,20 +1,14 @@
 window.onload = function () {
 
-  // Create Fabric canvas AFTER page is ready
   const canvas = new fabric.Canvas('canvas');
 
   let currentMode = 'wall';
 
-  // Expose canvas globally (important)
-  window.canvas = canvas;
-
-  // Set mode (wall / roof / door)
-  window.setMode = function (mode) {
+  function setMode(mode) {
     currentMode = mode;
     alert("Selected: " + mode);
-  };
+  }
 
-  // Handle image upload
   document.getElementById('imageUpload').addEventListener('change', function (e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -34,18 +28,17 @@ window.onload = function () {
         img.set({
           left: (canvas.width - img.width * scale) / 2,
           top: (canvas.height - img.height * scale) / 2,
-          selectable: false,
-          evented: false
+          selectable: false
         });
 
-        canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+        canvas.add(img);
+        canvas.sendToBack(img);
       });
     };
 
     reader.readAsDataURL(file);
   });
 
-  // Apply color overlay
   window.applyColor = function () {
     const code = document.getElementById('colorCode').value.trim();
     if (!code) {
@@ -54,24 +47,38 @@ window.onload = function () {
     }
 
     const colorMap = {
-      "AP101": "rgba(255, 200, 150, 0.45)",
-      "AP102": "rgba(200, 255, 200, 0.45)",
-      "AP103": "rgba(200, 200, 255, 0.45)"
+      "AP101": "rgba(255, 200, 150, 0.5)",
+      "AP102": "rgba(200, 255, 200, 0.5)",
+      "AP103": "rgba(200, 200, 255, 0.5)"
     };
 
     const color = colorMap[code] || "rgba(255, 0, 0, 0.4)";
 
     const rect = new fabric.Rect({
-      left: 120,
-      top: 120,
-      width: 350,
-      height: 220,
-      fill: color,
-      selectable: true
+      left: 100,
+      top: 100,
+      width: 300,
+      height: 200,
+      fill: color
     });
 
     canvas.add(rect);
   };
 
-  // Undo last action
   window.undo = function () {
+    const obj = canvas._objects.pop();
+    if (obj) canvas.renderAll();
+  };
+
+  window.resetCanvas = function () {
+    canvas.clear();
+  };
+
+  window.downloadImage = function () {
+    const link = document.createElement('a');
+    link.download = 'paint-preview.png';
+    link.href = canvas.toDataURL();
+    link.click();
+  };
+
+};
