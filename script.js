@@ -1,39 +1,36 @@
-// Create Fabric canvas
+// ===============================
+// CANVAS SETUP
+// ===============================
 const canvas = new fabric.Canvas('canvas', {
   selection: false
 });
 
-// Track mode
 let currentMode = null;
+let selectedArea = null;
 
 // Paint areas
-let wallArea = null;
-let roofArea = null;
-let doorArea = null;
+let wallArea, roofArea, doorArea;
 
-/* ===============================
-   MODE SELECTION
-================================ */
+// ===============================
+// MODE SELECTION
+// ===============================
 function setMode(mode) {
   currentMode = mode;
-  alert("Mode selected: " + mode);
+  alert("Click on the " + mode + " area to paint");
 }
 
-/* ===============================
-   IMAGE UPLOAD
-================================ */
+// ===============================
+// IMAGE UPLOAD
+// ===============================
 document.getElementById('imageUpload').addEventListener('change', function (e) {
   const file = e.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
-
   reader.onload = function (event) {
     fabric.Image.fromURL(event.target.result, function (img) {
-
       canvas.clear();
 
-      // Resize image
       const scale = Math.min(
         canvas.width / img.width,
         canvas.height / img.height
@@ -57,17 +54,19 @@ document.getElementById('imageUpload').addEventListener('change', function (e) {
   reader.readAsDataURL(file);
 });
 
-/* ===============================
-   CREATE PAINT AREAS
-================================ */
+// ===============================
+// CREATE PAINT AREAS
+// ===============================
 function createPaintAreas() {
+
   wallArea = new fabric.Rect({
     left: 150,
     top: 220,
     width: 300,
     height: 180,
     fill: 'rgba(0,0,0,0)',
-    selectable: false
+    selectable: true,
+    name: 'wall'
   });
 
   roofArea = new fabric.Rect({
@@ -76,7 +75,8 @@ function createPaintAreas() {
     width: 280,
     height: 80,
     fill: 'rgba(0,0,0,0)',
-    selectable: false
+    selectable: true,
+    name: 'roof'
   });
 
   doorArea = new fabric.Rect({
@@ -85,45 +85,66 @@ function createPaintAreas() {
     width: 70,
     height: 130,
     fill: 'rgba(0,0,0,0)',
-    selectable: false
+    selectable: true,
+    name: 'door'
   });
 
   canvas.add(wallArea, roofArea, doorArea);
 }
 
-/* ===============================
-   APPLY COLOR
-================================ */
+// ===============================
+// AREA SELECTION BY CLICK
+// ===============================
+canvas.on('mouse:down', function (opt) {
+  const obj = opt.target;
+  if (!obj || !currentMode) return;
+
+  if (obj.name === currentMode) {
+    selectedArea = obj;
+  } else {
+    alert("Wrong area selected. Choose " + currentMode);
+  }
+});
+
+// ===============================
+// APPLY COLOR (REALISTIC BLEND)
+// ===============================
 function applyColor() {
+  if (!selectedArea) {
+    alert("Select an area first");
+    return;
+  }
+
   const code = document.getElementById('colorCode').value.trim();
-  if (!code || !currentMode) {
-    alert("Select mode & enter color code");
+  if (!code) {
+    alert("Enter color code");
     return;
   }
 
   const colorMap = {
-    "AP101": "rgba(255,200,150,0.6)",
-    "AP102": "rgba(200,255,200,0.6)",
-    "AP103": "rgba(200,200,255,0.6)"
+    "AP101": "rgba(255,200,150,0.55)",
+    "AP102": "rgba(200,255,200,0.55)",
+    "AP103": "rgba(200,200,255,0.55)"
   };
 
   const color = colorMap[code] || "rgba(255,0,0,0.5)";
 
-  if (currentMode === 'wall') wallArea.set('fill', color);
-  if (currentMode === 'roof') roofArea.set('fill', color);
-  if (currentMode === 'door') doorArea.set('fill', color);
+  selectedArea.set({
+    fill: color,
+    globalCompositeOperation: 'multiply'
+  });
 
   canvas.renderAll();
 }
 
-/* ===============================
-   UNDO / RESET / DOWNLOAD
-================================ */
+// ===============================
+// UNDO / RESET / DOWNLOAD
+// ===============================
 function undo() {
-  if (currentMode === 'wall') wallArea.set('fill', 'rgba(0,0,0,0)');
-  if (currentMode === 'roof') roofArea.set('fill', 'rgba(0,0,0,0)');
-  if (currentMode === 'door') doorArea.set('fill', 'rgba(0,0,0,0)');
-  canvas.renderAll();
+  if (selectedArea) {
+    selectedArea.set('fill', 'rgba(0,0,0,0)');
+    canvas.renderAll();
+  }
 }
 
 function resetCanvas() {
