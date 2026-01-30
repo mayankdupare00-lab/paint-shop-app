@@ -2,108 +2,35 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Offline Paint App</title>
+  <title>Paint App Test</title>
 
-  <!-- Fabric.js -->
+  <!-- IMPORTANT: Fabric must load BEFORE script.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
 
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
-      background: #fafafa;
-    }
-
-    h2 {
-      margin-bottom: 10px;
-    }
-
-    .controls {
-      margin-bottom: 15px;
-    }
-
-    button {
-      margin-right: 6px;
-      margin-top: 5px;
-      padding: 6px 10px;
-      cursor: pointer;
-    }
-
-    input[type="text"] {
-      padding: 6px;
-      width: 220px;
     }
 
     canvas {
-      border: 2px solid #ccc; /* softer, showroom look */
-      margin-top: 10px;
-      background: #fff;
-    }
-
-    /* Color history styles */
-    #colorHistory {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 10px;
-    }
-
-    .color-chip {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      background: #fff;
-      font-size: 14px;
-    }
-
-    .color-box {
-      width: 24px;
-      height: 24px;
-      border-radius: 4px;
-      border: 1px solid #999;
+      border: 2px solid black;
+      display: block;
+      margin-top: 15px;
     }
   </style>
 </head>
 
 <body>
 
-  <h2>Offline Paint App</h2>
+  <h2>Fabric Image Test</h2>
 
-  <!-- CONTROLS -->
-  <div class="controls">
-    <input type="file" id="imageUpload">
+  <input type="file" id="imageUpload">
 
-    <br><br>
-
-    <button onclick="setMode('wall')">Wall</button>
-    <button onclick="setMode('roof')">Roof</button>
-    <button onclick="setMode('door')">Door</button>
-
-    <br><br>
-
-    <input type="text" id="colorCode" placeholder="Enter Color Code (AP101)">
-    <button onclick="applyColor()">Apply Color</button>
-
-    <br><br>
-
-    <button onclick="undo()">Undo</button>
-    <button onclick="resetCanvas()">Reset</button>
-    <button onclick="downloadImage()">Download</button>
-  </div>
-
-  <!-- CANVAS -->
+  <!-- CANVAS MUST EXIST BEFORE script.js -->
   <canvas id="canvas" width="800" height="500"></canvas>
 
-  <!-- COLOR HISTORY -->
-  <div style="margin-top:20px;">
-    <h3>Selected Colors</h3>
-    <div id="colorHistory"></div>
-  </div>
-
-  <!-- MAIN SCRIPT -->
+  <!-- YOUR SCRIPT LOADS LAST -->
   <script src="script.js"></script>
 
 </body>
