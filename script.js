@@ -10,9 +10,9 @@ const canvas = new fabric.Canvas('canvas', {
 // GLOBAL STATE
 // ===============================
 let currentMode = null;
-let drawingPolygon = false;
-let polygonPoints = [];
-let tempLine;
+let drawing = false;
+let points = [];
+let tempLine = null;
 
 // ===============================
 // MODE SELECTION
@@ -21,8 +21,8 @@ function setMode(mode) {
   currentMode = mode;
   alert(
     mode === 'wall'
-      ? 'Draw wall areas (click multiple points, double-click to finish)'
-      : `Mode selected: ${mode}`
+      ? 'Click to draw wall points. Double-click to finish wall.'
+      : 'Mode selected: ' + mode
   );
 }
 
@@ -60,65 +60,61 @@ document.getElementById('imageUpload').addEventListener('change', function (e) {
 });
 
 // ===============================
-// FREEHAND POLYGON WALL DRAW
+// FREEHAND WALL POLYGON DRAW
 // ===============================
 canvas.on('mouse:down', function (opt) {
   if (currentMode !== 'wall') return;
 
   const pointer = canvas.getPointer(opt.e);
 
-  if (!drawingPolygon) {
-    drawingPolygon = true;
-    polygonPoints = [{ x: pointer.x, y: pointer.y }];
+  if (!drawing) {
+    drawing = true;
+    points = [{ x: pointer.x, y: pointer.y }];
   } else {
-    polygonPoints.push({ x: pointer.x, y: pointer.y });
+    points.push({ x: pointer.x, y: pointer.y });
   }
 
-  // Draw temp line
   if (tempLine) canvas.remove(tempLine);
 
-  tempLine = new fabric.Line(
-    [
-      polygonPoints[polygonPoints.length - 2]?.x || pointer.x,
-      polygonPoints[polygonPoints.length - 2]?.y || pointer.y,
-      pointer.x,
-      pointer.y
-    ],
-    {
-      stroke: '#555',
-      selectable: false,
-      evented: false
-    }
-  );
-
-  canvas.add(tempLine);
+  if (points.length > 1) {
+    const last = points[points.length - 2];
+    tempLine = new fabric.Line(
+      [last.x, last.y, pointer.x, pointer.y],
+      {
+        stroke: '#555',
+        selectable: false,
+        evented: false
+      }
+    );
+    canvas.add(tempLine);
+  }
 });
 
-// Finish polygon on double click
+// Finish wall on double click
 canvas.on('mouse:dblclick', function () {
-  if (!drawingPolygon || polygonPoints.length < 3) return;
+  if (!drawing || points.length < 3) return;
 
-  drawingPolygon = false;
+  drawing = false;
   if (tempLine) canvas.remove(tempLine);
 
-  const polygon = new fabric.Polygon(polygonPoints, {
+  const wall = new fabric.Polygon(points, {
     fill: 'rgba(0,0,0,0)',
     stroke: '#666',
     strokeWidth: 1,
-    objectCaching: false,
     selectable: true,
     hasControls: true,
     cornerStyle: 'circle',
     transparentCorners: false,
+    objectCaching: false,
     name: 'wall'
   });
 
-  canvas.add(polygon);
-  polygonPoints = [];
+  canvas.add(wall);
+  points = [];
 });
 
 // ===============================
-// APPLY COLOR (MULTI-SELECTION)
+// APPLY COLOR (MULTI + REPAINT FIX)
 // ===============================
 function applyColor() {
   const code = document.getElementById('colorCode').value.trim();
@@ -128,36 +124,38 @@ function applyColor() {
   }
 
   const colorMap = {
-    AP101: 'rgb(170,90,70)',   // deep terracotta
-    AP102: 'rgb(90,140,90)',   // strong green
-    AP103: 'rgb(85,90,150)',   // deep blue
-    AP104: 'rgb(120,120,120)', // cement grey
-    AP105: 'rgb(140,110,70)'   // brown
+    AP101: 'rgb(150,70,50)',   // deep terracotta
+    AP102: 'rgb(70,120,70)',   // dark green
+    AP103: 'rgb(60,70,130)',   // deep blue
+    AP104: 'rgb(100,100,100)', // cement grey
+    AP105: 'rgb(120,90,60)'    // brown
   };
 
-  const paintColor = colorMap[code] || 'rgb(160,80,80)';
-
+  const paintColor = colorMap[code] || 'rgb(140,60,60)';
   const active = canvas.getActiveObject();
 
   if (!active) {
-    alert('Select one or more wall areas');
+    alert('Select wall area(s) first');
     return;
   }
 
-  // MULTI-SELECTION SUPPORT
   if (active.type === 'activeSelection') {
-    active.forEachObject(obj => applyPaint(obj, paintColor));
+    active.forEachObject(obj => paintWall(obj, paintColor));
   } else {
-    applyPaint(active, paintColor);
+    paintWall(active, paintColor);
   }
 
-  canvas.renderAll();
+  // 🔥 IMPORTANT: allow painting another wall
+  canvas.discardActiveObject();
+  canvas.requestRenderAll();
 }
 
 // ===============================
 // REALISTIC PAINT EFFECT
 // ===============================
-function applyPaint(obj, color) {
+function paintWall(obj, color) {
+  if (obj.name !== 'wall') return;
+
   obj.set({
     fill: color,
     opacity: 1,
@@ -177,7 +175,7 @@ function undo() {
   } else {
     active.set('fill', 'rgba(0,0,0,0)');
   }
-  canvas.renderAll();
+  canvas.requestRenderAll();
 }
 
 function resetCanvas() {
