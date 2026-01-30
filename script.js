@@ -1,15 +1,13 @@
 // ===============================
-// CANVAS SETUP
+// CANVAS SETUP (SIMPLE SELECTION)
 // ===============================
 const canvas = new fabric.Canvas('canvas', {
-  selection: true,
+  selection: false,
   preserveObjectStacking: true
 });
 
-// ===============================
-// GLOBAL STATE
-// ===============================
 let currentMode = null;
+let activeWall = null;
 let drawing = false;
 let points = [];
 let tempLine = null;
@@ -19,11 +17,9 @@ let tempLine = null;
 // ===============================
 function setMode(mode) {
   currentMode = mode;
-  alert(
-    mode === 'wall'
-      ? 'Click to draw wall points. Double-click to finish wall.'
-      : 'Mode selected: ' + mode
-  );
+  if (mode === 'wall') {
+    alert('Click to draw wall shape. Double-click to finish.');
+  }
 }
 
 // ===============================
@@ -60,7 +56,7 @@ document.getElementById('imageUpload').addEventListener('change', function (e) {
 });
 
 // ===============================
-// FREEHAND WALL POLYGON DRAW
+// DRAW WALL POLYGONS
 // ===============================
 canvas.on('mouse:down', function (opt) {
   if (currentMode !== 'wall') return;
@@ -90,7 +86,7 @@ canvas.on('mouse:down', function (opt) {
   }
 });
 
-// Finish wall on double click
+// Finish wall
 canvas.on('mouse:dblclick', function () {
   if (!drawing || points.length < 3) return;
 
@@ -101,12 +97,9 @@ canvas.on('mouse:dblclick', function () {
     fill: 'rgba(0,0,0,0)',
     stroke: '#666',
     strokeWidth: 1,
-    selectable: true,
-    hasControls: true,
-    cornerStyle: 'circle',
-    transparentCorners: false,
-    objectCaching: false,
-    name: 'wall'
+    selectable: false,
+    name: 'wall',
+    objectCaching: false
   });
 
   canvas.add(wall);
@@ -114,9 +107,30 @@ canvas.on('mouse:dblclick', function () {
 });
 
 // ===============================
-// APPLY COLOR (MULTI + REPAINT FIX)
+// AUTO WALL SELECTION (ONE CLICK)
+// ===============================
+canvas.on('mouse:down', function (opt) {
+  if (!opt.target || opt.target.name !== 'wall') return;
+
+  // Auto deselect previous wall
+  if (activeWall) {
+    activeWall.set('stroke', '#666');
+  }
+
+  activeWall = opt.target;
+  activeWall.set('stroke', '#000'); // highlight selected wall
+  canvas.renderAll();
+});
+
+// ===============================
+// APPLY DARK REALISTIC PAINT
 // ===============================
 function applyColor() {
+  if (!activeWall) {
+    alert('Click on a wall first');
+    return;
+  }
+
   const code = document.getElementById('colorCode').value.trim();
   if (!code) {
     alert('Enter color code');
@@ -124,62 +138,36 @@ function applyColor() {
   }
 
   const colorMap = {
-    AP101: 'rgb(150,70,50)',   // deep terracotta
-    AP102: 'rgb(70,120,70)',   // dark green
-    AP103: 'rgb(60,70,130)',   // deep blue
-    AP104: 'rgb(100,100,100)', // cement grey
-    AP105: 'rgb(120,90,60)'    // brown
+    AP101: 'rgb(145,65,45)',   // deep brick
+    AP102: 'rgb(65,110,65)',   // dark green
+    AP103: 'rgb(55,65,120)',   // navy blue
+    AP104: 'rgb(95,95,95)',    // cement grey
+    AP105: 'rgb(120,85,55)'    // brown
   };
 
-  const paintColor = colorMap[code] || 'rgb(140,60,60)';
-  const active = canvas.getActiveObject();
+  const paintColor = colorMap[code] || 'rgb(130,60,60)';
 
-  if (!active) {
-    alert('Select wall area(s) first');
-    return;
-  }
-
-  if (active.type === 'activeSelection') {
-    active.forEachObject(obj => paintWall(obj, paintColor));
-  } else {
-    paintWall(active, paintColor);
-  }
-
-  // 🔥 IMPORTANT: allow painting another wall
-  canvas.discardActiveObject();
-  canvas.requestRenderAll();
-}
-
-// ===============================
-// REALISTIC PAINT EFFECT
-// ===============================
-function paintWall(obj, color) {
-  if (obj.name !== 'wall') return;
-
-  obj.set({
-    fill: color,
+  activeWall.set({
+    fill: paintColor,
     opacity: 1,
     globalCompositeOperation: 'multiply'
   });
+
+  canvas.renderAll();
 }
 
 // ===============================
 // UNDO / RESET / DOWNLOAD
 // ===============================
 function undo() {
-  const active = canvas.getActiveObject();
-  if (!active) return;
-
-  if (active.type === 'activeSelection') {
-    active.forEachObject(obj => obj.set('fill', 'rgba(0,0,0,0)'));
-  } else {
-    active.set('fill', 'rgba(0,0,0,0)');
-  }
-  canvas.requestRenderAll();
+  if (!activeWall) return;
+  activeWall.set('fill', 'rgba(0,0,0,0)');
+  canvas.renderAll();
 }
 
 function resetCanvas() {
   canvas.clear();
+  activeWall = null;
 }
 
 function downloadImage() {
