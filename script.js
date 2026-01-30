@@ -2,20 +2,28 @@
 // CANVAS SETUP
 // ===============================
 const canvas = new fabric.Canvas('canvas', {
-  selection: false,
+  selection: true,
   preserveObjectStacking: true
 });
 
+// ===============================
+// GLOBAL STATE
+// ===============================
 let currentMode = null;
-let selectedArea = null;
+let drawingPolygon = false;
+let polygonPoints = [];
+let tempLine;
 
 // ===============================
-// MODE
+// MODE SELECTION
 // ===============================
 function setMode(mode) {
   currentMode = mode;
-  selectedArea = null;
-  alert("Click on " + mode);
+  alert(
+    mode === 'wall'
+      ? 'Draw wall areas (click multiple points, double-click to finish)'
+      : `Mode selected: ${mode}`
+  );
 }
 
 // ===============================
@@ -27,7 +35,7 @@ document.getElementById('imageUpload').addEventListener('change', function (e) {
 
   const reader = new FileReader();
   reader.onload = function (event) {
-    fabric.Image.fromURL(event.target.result, img => {
+    fabric.Image.fromURL(event.target.result, function (img) {
       canvas.clear();
 
       const scale = Math.min(
@@ -45,85 +53,131 @@ document.getElementById('imageUpload').addEventListener('change', function (e) {
 
       canvas.add(img);
       canvas.sendToBack(img);
-      createPaintAreas();
     });
   };
+
   reader.readAsDataURL(file);
 });
 
 // ===============================
-// PAINT AREAS (EDITABLE)
+// FREEHAND POLYGON WALL DRAW
 // ===============================
-function createPaintAreas() {
-  const base = {
+canvas.on('mouse:down', function (opt) {
+  if (currentMode !== 'wall') return;
+
+  const pointer = canvas.getPointer(opt.e);
+
+  if (!drawingPolygon) {
+    drawingPolygon = true;
+    polygonPoints = [{ x: pointer.x, y: pointer.y }];
+  } else {
+    polygonPoints.push({ x: pointer.x, y: pointer.y });
+  }
+
+  // Draw temp line
+  if (tempLine) canvas.remove(tempLine);
+
+  tempLine = new fabric.Line(
+    [
+      polygonPoints[polygonPoints.length - 2]?.x || pointer.x,
+      polygonPoints[polygonPoints.length - 2]?.y || pointer.y,
+      pointer.x,
+      pointer.y
+    ],
+    {
+      stroke: '#555',
+      selectable: false,
+      evented: false
+    }
+  );
+
+  canvas.add(tempLine);
+});
+
+// Finish polygon on double click
+canvas.on('mouse:dblclick', function () {
+  if (!drawingPolygon || polygonPoints.length < 3) return;
+
+  drawingPolygon = false;
+  if (tempLine) canvas.remove(tempLine);
+
+  const polygon = new fabric.Polygon(polygonPoints, {
     fill: 'rgba(0,0,0,0)',
+    stroke: '#666',
+    strokeWidth: 1,
+    objectCaching: false,
     selectable: true,
     hasControls: true,
-    cornerSize: 10,
-    transparentCorners: false
-  };
+    cornerStyle: 'circle',
+    transparentCorners: false,
+    name: 'wall'
+  });
 
-  canvas.add(
-    new fabric.Rect({ left:150, top:220, width:300, height:180, name:'wall', ...base }),
-    new fabric.Rect({ left:160, top:120, width:280, height:80, name:'roof', ...base }),
-    new fabric.Rect({ left:260, top:270, width:70, height:130, name:'door', ...base })
-  );
-}
-
-// ===============================
-// SELECT AREA
-// ===============================
-canvas.on('mouse:down', e => {
-  if (!currentMode || !e.target) return;
-  if (e.target.name === currentMode) {
-    selectedArea = e.target;
-    canvas.setActiveObject(e.target);
-  } else {
-    alert("Wrong area selected");
-  }
+  canvas.add(polygon);
+  polygonPoints = [];
 });
 
 // ===============================
-// APPLY ULTRA DARK REAL PAINT
+// APPLY COLOR (MULTI-SELECTION)
 // ===============================
 function applyColor() {
-  if (!selectedArea) {
-    alert("Select area first");
+  const code = document.getElementById('colorCode').value.trim();
+  if (!code) {
+    alert('Enter color code');
     return;
   }
 
-  const code = document.getElementById('colorCode').value.trim().toUpperCase();
-
-  // VERY DARK PAINT COLORS
   const colorMap = {
-    AP101: "#6A1F1F", // deep brick red
-    AP102: "#1F4F2F", // forest green
-    AP103: "#1F2F5A"  // navy blue
+    AP101: 'rgb(170,90,70)',   // deep terracotta
+    AP102: 'rgb(90,140,90)',   // strong green
+    AP103: 'rgb(85,90,150)',   // deep blue
+    AP104: 'rgb(120,120,120)', // cement grey
+    AP105: 'rgb(140,110,70)'   // brown
   };
 
-  const paintColor = colorMap[code] || "#5A1F1F";
+  const paintColor = colorMap[code] || 'rgb(160,80,80)';
 
-  selectedArea.set({
-    fill: paintColor,
-    opacity: 1,
-    globalCompositeOperation: 'source-atop',
-    shadow: new fabric.Shadow({
-      color: 'rgba(0,0,0,0.45)',
-      blur: 18
-    })
-  });
+  const active = canvas.getActiveObject();
+
+  if (!active) {
+    alert('Select one or more wall areas');
+    return;
+  }
+
+  // MULTI-SELECTION SUPPORT
+  if (active.type === 'activeSelection') {
+    active.forEachObject(obj => applyPaint(obj, paintColor));
+  } else {
+    applyPaint(active, paintColor);
+  }
 
   canvas.renderAll();
 }
 
 // ===============================
-// CONTROLS
+// REALISTIC PAINT EFFECT
+// ===============================
+function applyPaint(obj, color) {
+  obj.set({
+    fill: color,
+    opacity: 1,
+    globalCompositeOperation: 'multiply'
+  });
+}
+
+// ===============================
+// UNDO / RESET / DOWNLOAD
 // ===============================
 function undo() {
-  if (selectedArea) {
-    selectedArea.set({ fill:'rgba(0,0,0,0)', shadow:null });
-    canvas.renderAll();
+  const active = canvas.getActiveObject();
+  if (!active) return;
+
+  if (active.type === 'activeSelection') {
+    active.forEachObject(obj => obj.set('fill', 'rgba(0,0,0,0)'));
+  } else {
+    active.set('fill', 'rgba(0,0,0,0)');
   }
+  canvas.renderAll();
 }
 
 function resetCanvas() {
@@ -133,6 +187,6 @@ function resetCanvas() {
 function downloadImage() {
   const link = document.createElement('a');
   link.download = 'paint-preview.png';
-  link.href = canvas.toDataURL({ format:'png', quality:1 });
+  link.href = canvas.toDataURL({ format: 'png', quality: 1 });
   link.click();
 }
