@@ -1,209 +1,171 @@
 // ===============================
-// CANVAS SETUP
+// WAIT FOR DOM
 // ===============================
-const canvas = new fabric.Canvas('canvas', {
-  selection: false,
-  preserveObjectStacking: true,
-  hoverCursor: 'pointer'
-});
+window.onload = () => {
 
-let activeWall = null;
-let currentMode = 'wall';
-let drawing = false;
-let points = [];
+  const canvas = new fabric.Canvas('canvas', {
+    selection: false,
+    preserveObjectStacking: true
+  });
 
-// Store applied colors
-const paintHistory = [];
+  let currentMode = 'wall';
+  let selectedObjects = [];
+  let usedColors = {};
 
-// ===============================
-// IMAGE UPLOAD
-// ===============================
-document.getElementById('imageUpload').addEventListener('change', function (e) {
-  const file = e.target.files[0];
-  if (!file) return;
+  // ===============================
+  // MODE SELECTION
+  // ===============================
+  window.setMode = function (mode) {
+    currentMode = mode;
+  };
 
-  const reader = new FileReader();
-  reader.onload = function (event) {
-    fabric.Image.fromURL(event.target.result, function (img) {
-      canvas.clear();
-      paintHistory.length = 0;
-      updateHistoryUI();
+  // ===============================
+  // IMAGE UPLOAD
+  // ===============================
+  document.getElementById('imageUpload').addEventListener('change', function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-      const scale = Math.min(
-        canvas.width / img.width,
-        canvas.height / img.height
-      );
+    const reader = new FileReader();
 
-      img.scale(scale);
-      img.set({
-        left: (canvas.width - img.width * scale) / 2,
-        top: (canvas.height - img.height * scale) / 2,
-        selectable: false,
-        evented: false
+    reader.onload = function (event) {
+      fabric.Image.fromURL(event.target.result, function (img) {
+
+        canvas.clear();
+
+        const scale = Math.min(
+          canvas.width / img.width,
+          canvas.height / img.height
+        );
+
+        img.scale(scale);
+        img.set({
+          left: (canvas.width - img.width * scale) / 2,
+          top: (canvas.height - img.height * scale) / 2,
+          selectable: false,
+          evented: false
+        });
+
+        canvas.add(img);
+        canvas.sendToBack(img);
+
+        createAutoWallOverlays();
+      });
+    };
+
+    reader.readAsDataURL(file);
+  });
+
+  // ===============================
+  // AUTO WALL OVERLAYS (EASY CLICK)
+  // ===============================
+  function createAutoWallOverlays() {
+    const areas = [
+      { left: 120, top: 200, width: 260, height: 170 },
+      { left: 410, top: 210, width: 260, height: 160 },
+      { left: 230, top: 120, width: 320, height: 70 }
+    ];
+
+    areas.forEach(area => {
+      const rect = new fabric.Rect({
+        ...area,
+        fill: 'rgba(0,0,0,0)',
+        stroke: null,            // ❌ NO BORDER
+        selectable: true,
+        hasBorders: false,
+        hasControls: false,
+        hoverCursor: 'pointer'
       });
 
-      canvas.add(img);
-      canvas.sendToBack(img);
+      canvas.add(rect);
     });
-  };
-  reader.readAsDataURL(file);
-});
-
-// ===============================
-// DRAW WALL POLYGON
-// ===============================
-canvas.on('mouse:down', function (opt) {
-  if (currentMode !== 'wall') return;
-
-  const p = canvas.getPointer(opt.e);
-
-  if (!drawing) {
-    drawing = true;
-    points = [{ x: p.x, y: p.y }];
-  } else {
-    points.push({ x: p.x, y: p.y });
   }
-});
 
-canvas.on('mouse:dblclick', function () {
-  if (!drawing || points.length < 3) return;
-  drawing = false;
+  // ===============================
+  // MULTI-SELECTION
+  // ===============================
+  canvas.on('mouse:down', (e) => {
+    if (!e.target) return;
 
-  const wall = new fabric.Polygon(points, {
-    fill: 'rgba(0,0,0,0)',
-    stroke: 'rgba(0,0,0,0)', // 👈 invisible by default
-    strokeWidth: 3,
-    selectable: true,
-    hasControls: true,
-    cornerStyle: 'circle',
-    cornerColor: '#ffcc00',
-    borderColor: '#ffcc00',
-    objectCaching: false,
-    name: 'wall'
+    if (!selectedObjects.includes(e.target)) {
+      selectedObjects.push(e.target);
+      e.target.set('opacity', 0.95);
+    }
   });
 
-  canvas.add(wall);
-  points = [];
-});
+  // ===============================
+  // APPLY DARK REALISTIC COLOR
+  // ===============================
+  window.applyColor = function () {
+    const code = document.getElementById('colorCode').value.toUpperCase().trim();
+    if (!code || selectedObjects.length === 0) return;
 
-// ===============================
-// EASY SELECTION (TEMPORARY BORDER)
-// ===============================
-canvas.on('mouse:over', function (e) {
-  if (e.target && e.target.name === 'wall') {
-    e.target.set({
-      stroke: '#ffcc00',
-      strokeWidth: 4
+    const colorMap = {
+      AP101: '#9b3c2f',
+      AP102: '#355e3b',
+      AP103: '#2f3f6b',
+      AP104: '#6b2f5b'
+    };
+
+    const color = colorMap[code] || '#8b2f2f';
+
+    selectedObjects.forEach(obj => {
+      obj.set({
+        fill: color,
+        globalCompositeOperation: 'multiply',
+        opacity: 0.95
+      });
     });
+
+    usedColors[code] = color;
+    selectedObjects = [];
+
     canvas.renderAll();
-  }
-});
-
-canvas.on('mouse:out', function (e) {
-  if (e.target && e.target !== activeWall) {
-    e.target.set({
-      stroke: 'rgba(0,0,0,0)'
-    });
-    canvas.renderAll();
-  }
-});
-
-canvas.on('mouse:down', function (e) {
-  if (!e.target || e.target.name !== 'wall') return;
-
-  if (activeWall && activeWall !== e.target) {
-    activeWall.set({
-      stroke: 'rgba(0,0,0,0)',
-      shadow: null
-    });
-  }
-
-  activeWall = e.target;
-});
-
-// ===============================
-// APPLY DARK REALISTIC PAINT
-// ===============================
-function applyColor() {
-  if (!activeWall) {
-    alert('Select a wall first');
-    return;
-  }
-
-  const code = document.getElementById('colorCode').value.trim().toUpperCase();
-
-  const colorMap = {
-    AP101: '#7a2f20',
-    AP102: '#355f35',
-    AP103: '#2f3f7a',
-    AP104: '#4f4f4f',
-    AP105: '#6b4b2a'
+    updateColorHistory();
   };
 
-  const color = colorMap[code] || '#6a2a2a';
+  // ===============================
+  // COLOR HISTORY
+  // ===============================
+  function updateColorHistory() {
+    let history = document.getElementById('colorHistory');
+    if (!history) {
+      history = document.createElement('div');
+      history.id = 'colorHistory';
+      history.innerHTML = '<h3>Used Colors</h3>';
+      document.body.appendChild(history);
+    }
 
-  activeWall.set({
-    fill: color,
-    opacity: 1,
-    stroke: 'rgba(0,0,0,0)', // 👈 REMOVE BORDER AFTER PAINT
-    globalCompositeOperation: 'source-over'
-  });
+    history.innerHTML = '<h3>Used Colors</h3>';
+    Object.keys(usedColors).forEach(code => {
+      const box = document.createElement('div');
+      box.style.display = 'inline-block';
+      box.style.margin = '5px';
+      box.innerHTML = `
+        <div style="width:30px;height:30px;background:${usedColors[code]}"></div>
+        <small>${code}</small>
+      `;
+      history.appendChild(box);
+    });
+  }
 
-  paintHistory.push({ code, color });
-  updateHistoryUI();
+  // ===============================
+  // CONTROLS
+  // ===============================
+  window.undo = function () {
+    const obj = canvas.getObjects().pop();
+    if (obj) canvas.remove(obj);
+  };
 
-  canvas.renderAll();
-}
+  window.resetCanvas = function () {
+    canvas.clear();
+    selectedObjects = [];
+  };
 
-// ===============================
-// COLOR HISTORY UI
-// ===============================
-function updateHistoryUI() {
-  const container = document.getElementById('colorHistory');
-  if (!container) return;
-
-  container.innerHTML = '';
-
-  paintHistory.forEach(item => {
-    const div = document.createElement('div');
-    div.style.display = 'flex';
-    div.style.alignItems = 'center';
-    div.style.marginBottom = '6px';
-
-    const swatch = document.createElement('div');
-    swatch.style.width = '22px';
-    swatch.style.height = '22px';
-    swatch.style.background = item.color;
-    swatch.style.marginRight = '8px';
-    swatch.style.border = '1px solid #333';
-
-    const label = document.createElement('span');
-    label.textContent = item.code;
-
-    div.appendChild(swatch);
-    div.appendChild(label);
-    container.appendChild(div);
-  });
-}
-
-// ===============================
-// CONTROLS
-// ===============================
-function undo() {
-  if (!activeWall) return;
-  activeWall.set('fill', 'rgba(0,0,0,0)');
-  canvas.renderAll();
-}
-
-function resetCanvas() {
-  canvas.clear();
-  paintHistory.length = 0;
-  updateHistoryUI();
-}
-
-function downloadImage() {
-  const a = document.createElement('a');
-  a.download = 'paint-preview.png';
-  a.href = canvas.toDataURL({ quality: 1 });
-  a.click();
-}
+  window.downloadImage = function () {
+    const link = document.createElement('a');
+    link.download = 'paint-preview.png';
+    link.href = canvas.toDataURL({ format: 'png', quality: 1 });
+    link.click();
+  };
+};
