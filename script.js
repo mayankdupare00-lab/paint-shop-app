@@ -1,5 +1,5 @@
 // ===============================
-// CANVAS SETUP (SIMPLE SELECTION)
+// CANVAS SETUP
 // ===============================
 const canvas = new fabric.Canvas('canvas', {
   selection: false,
@@ -18,7 +18,7 @@ let tempLine = null;
 function setMode(mode) {
   currentMode = mode;
   if (mode === 'wall') {
-    alert('Click to draw wall shape. Double-click to finish.');
+    alert('Click to draw wall. Double-click to finish.');
   }
 }
 
@@ -95,8 +95,8 @@ canvas.on('mouse:dblclick', function () {
 
   const wall = new fabric.Polygon(points, {
     fill: 'rgba(0,0,0,0)',
-    stroke: '#666',
-    strokeWidth: 1,
+    stroke: '#ffcc00',       // visible outline
+    strokeWidth: 2,
     selectable: false,
     name: 'wall',
     objectCaching: false
@@ -107,23 +107,31 @@ canvas.on('mouse:dblclick', function () {
 });
 
 // ===============================
-// AUTO WALL SELECTION (ONE CLICK)
+// AUTO WALL SELECTION (CLEAR)
 // ===============================
 canvas.on('mouse:down', function (opt) {
   if (!opt.target || opt.target.name !== 'wall') return;
 
-  // Auto deselect previous wall
+  // reset previous
   if (activeWall) {
-    activeWall.set('stroke', '#666');
+    activeWall.set({
+      stroke: '#ffcc00',
+      strokeWidth: 2
+    });
   }
 
   activeWall = opt.target;
-  activeWall.set('stroke', '#000'); // highlight selected wall
+
+  activeWall.set({
+    stroke: '#000000',
+    strokeWidth: 3
+  });
+
   canvas.renderAll();
 });
 
 // ===============================
-// APPLY DARK REALISTIC PAINT
+// APPLY STRONG REALISTIC PAINT
 // ===============================
 function applyColor() {
   if (!activeWall) {
@@ -138,19 +146,19 @@ function applyColor() {
   }
 
   const colorMap = {
-    AP101: 'rgb(145,65,45)',   // deep brick
-    AP102: 'rgb(65,110,65)',   // dark green
-    AP103: 'rgb(55,65,120)',   // navy blue
-    AP104: 'rgb(95,95,95)',    // cement grey
-    AP105: 'rgb(120,85,55)'    // brown
+    AP101: '#8f3d2d', // deep brick red
+    AP102: '#3f6f3f', // dark green
+    AP103: '#36408f', // deep blue
+    AP104: '#5f5f5f', // cement
+    AP105: '#7a5636'  // brown
   };
 
-  const paintColor = colorMap[code] || 'rgb(130,60,60)';
+  const paintColor = colorMap[code] || '#7d2f2f';
 
   activeWall.set({
     fill: paintColor,
-    opacity: 1,
-    globalCompositeOperation: 'multiply'
+    opacity: 0.95,
+    globalCompositeOperation: 'source-over' // 🔥 FIX: no fade
   });
 
   canvas.renderAll();
