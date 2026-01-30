@@ -1,17 +1,19 @@
 window.onload = function () {
 
-  // 1️⃣ Create canvas
-  const canvas = new fabric.Canvas('canvas');
-  console.log("Fabric canvas created");
+  console.log("Page loaded");
 
-  // 2️⃣ Image upload
+  const canvas = new fabric.Canvas('canvas');
+  console.log("Canvas created", canvas);
+
   document.getElementById('imageUpload').addEventListener('change', function (e) {
+
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
 
     reader.onload = function (event) {
+
       fabric.Image.fromURL(event.target.result, function (img) {
 
         console.log("Image loaded");
@@ -33,6 +35,7 @@ window.onload = function () {
         canvas.add(img);
         canvas.renderAll();
       });
+
     };
 
     reader.readAsDataURL(file);
