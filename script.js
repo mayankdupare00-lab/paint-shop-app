@@ -3,24 +3,17 @@
 // ===============================
 const canvas = new fabric.Canvas('canvas', {
   selection: false,
-  preserveObjectStacking: true
+  preserveObjectStacking: true,
+  hoverCursor: 'pointer'
 });
 
-let currentMode = null;
 let activeWall = null;
+let currentMode = 'wall';
 let drawing = false;
 let points = [];
-let tempLine = null;
 
-// ===============================
-// MODE SELECTION
-// ===============================
-function setMode(mode) {
-  currentMode = mode;
-  if (mode === 'wall') {
-    alert('Click to draw wall. Double-click to finish.');
-  }
-}
+// Store applied colors
+const paintHistory = [];
 
 // ===============================
 // IMAGE UPLOAD
@@ -33,6 +26,8 @@ document.getElementById('imageUpload').addEventListener('change', function (e) {
   reader.onload = function (event) {
     fabric.Image.fromURL(event.target.result, function (img) {
       canvas.clear();
+      paintHistory.length = 0;
+      updateHistoryUI();
 
       const scale = Math.min(
         canvas.width / img.width,
@@ -51,55 +46,40 @@ document.getElementById('imageUpload').addEventListener('change', function (e) {
       canvas.sendToBack(img);
     });
   };
-
   reader.readAsDataURL(file);
 });
 
 // ===============================
-// DRAW WALL POLYGONS
+// DRAW WALL POLYGON
 // ===============================
 canvas.on('mouse:down', function (opt) {
   if (currentMode !== 'wall') return;
 
-  const pointer = canvas.getPointer(opt.e);
+  const p = canvas.getPointer(opt.e);
 
   if (!drawing) {
     drawing = true;
-    points = [{ x: pointer.x, y: pointer.y }];
+    points = [{ x: p.x, y: p.y }];
   } else {
-    points.push({ x: pointer.x, y: pointer.y });
-  }
-
-  if (tempLine) canvas.remove(tempLine);
-
-  if (points.length > 1) {
-    const last = points[points.length - 2];
-    tempLine = new fabric.Line(
-      [last.x, last.y, pointer.x, pointer.y],
-      {
-        stroke: '#555',
-        selectable: false,
-        evented: false
-      }
-    );
-    canvas.add(tempLine);
+    points.push({ x: p.x, y: p.y });
   }
 });
 
-// Finish wall
 canvas.on('mouse:dblclick', function () {
   if (!drawing || points.length < 3) return;
-
   drawing = false;
-  if (tempLine) canvas.remove(tempLine);
 
   const wall = new fabric.Polygon(points, {
     fill: 'rgba(0,0,0,0)',
-    stroke: '#ffcc00',       // visible outline
-    strokeWidth: 2,
-    selectable: false,
-    name: 'wall',
-    objectCaching: false
+    stroke: 'rgba(0,0,0,0)', // 👈 invisible by default
+    strokeWidth: 3,
+    selectable: true,
+    hasControls: true,
+    cornerStyle: 'circle',
+    cornerColor: '#ffcc00',
+    borderColor: '#ffcc00',
+    objectCaching: false,
+    name: 'wall'
   });
 
   canvas.add(wall);
@@ -107,65 +87,107 @@ canvas.on('mouse:dblclick', function () {
 });
 
 // ===============================
-// AUTO WALL SELECTION (CLEAR)
+// EASY SELECTION (TEMPORARY BORDER)
 // ===============================
-canvas.on('mouse:down', function (opt) {
-  if (!opt.target || opt.target.name !== 'wall') return;
-
-  // reset previous
-  if (activeWall) {
-    activeWall.set({
+canvas.on('mouse:over', function (e) {
+  if (e.target && e.target.name === 'wall') {
+    e.target.set({
       stroke: '#ffcc00',
-      strokeWidth: 2
+      strokeWidth: 4
+    });
+    canvas.renderAll();
+  }
+});
+
+canvas.on('mouse:out', function (e) {
+  if (e.target && e.target !== activeWall) {
+    e.target.set({
+      stroke: 'rgba(0,0,0,0)'
+    });
+    canvas.renderAll();
+  }
+});
+
+canvas.on('mouse:down', function (e) {
+  if (!e.target || e.target.name !== 'wall') return;
+
+  if (activeWall && activeWall !== e.target) {
+    activeWall.set({
+      stroke: 'rgba(0,0,0,0)',
+      shadow: null
     });
   }
 
-  activeWall = opt.target;
-
-  activeWall.set({
-    stroke: '#000000',
-    strokeWidth: 3
-  });
-
-  canvas.renderAll();
+  activeWall = e.target;
 });
 
 // ===============================
-// APPLY STRONG REALISTIC PAINT
+// APPLY DARK REALISTIC PAINT
 // ===============================
 function applyColor() {
   if (!activeWall) {
-    alert('Click on a wall first');
+    alert('Select a wall first');
     return;
   }
 
-  const code = document.getElementById('colorCode').value.trim();
-  if (!code) {
-    alert('Enter color code');
-    return;
-  }
+  const code = document.getElementById('colorCode').value.trim().toUpperCase();
 
   const colorMap = {
-    AP101: '#8f3d2d', // deep brick red
-    AP102: '#3f6f3f', // dark green
-    AP103: '#36408f', // deep blue
-    AP104: '#5f5f5f', // cement
-    AP105: '#7a5636'  // brown
+    AP101: '#7a2f20',
+    AP102: '#355f35',
+    AP103: '#2f3f7a',
+    AP104: '#4f4f4f',
+    AP105: '#6b4b2a'
   };
 
-  const paintColor = colorMap[code] || '#7d2f2f';
+  const color = colorMap[code] || '#6a2a2a';
 
   activeWall.set({
-    fill: paintColor,
-    opacity: 0.95,
-    globalCompositeOperation: 'source-over' // 🔥 FIX: no fade
+    fill: color,
+    opacity: 1,
+    stroke: 'rgba(0,0,0,0)', // 👈 REMOVE BORDER AFTER PAINT
+    globalCompositeOperation: 'source-over'
   });
+
+  paintHistory.push({ code, color });
+  updateHistoryUI();
 
   canvas.renderAll();
 }
 
 // ===============================
-// UNDO / RESET / DOWNLOAD
+// COLOR HISTORY UI
+// ===============================
+function updateHistoryUI() {
+  const container = document.getElementById('colorHistory');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  paintHistory.forEach(item => {
+    const div = document.createElement('div');
+    div.style.display = 'flex';
+    div.style.alignItems = 'center';
+    div.style.marginBottom = '6px';
+
+    const swatch = document.createElement('div');
+    swatch.style.width = '22px';
+    swatch.style.height = '22px';
+    swatch.style.background = item.color;
+    swatch.style.marginRight = '8px';
+    swatch.style.border = '1px solid #333';
+
+    const label = document.createElement('span');
+    label.textContent = item.code;
+
+    div.appendChild(swatch);
+    div.appendChild(label);
+    container.appendChild(div);
+  });
+}
+
+// ===============================
+// CONTROLS
 // ===============================
 function undo() {
   if (!activeWall) return;
@@ -175,12 +197,13 @@ function undo() {
 
 function resetCanvas() {
   canvas.clear();
-  activeWall = null;
+  paintHistory.length = 0;
+  updateHistoryUI();
 }
 
 function downloadImage() {
-  const link = document.createElement('a');
-  link.download = 'paint-preview.png';
-  link.href = canvas.toDataURL({ format: 'png', quality: 1 });
-  link.click();
+  const a = document.createElement('a');
+  a.download = 'paint-preview.png';
+  a.href = canvas.toDataURL({ quality: 1 });
+  a.click();
 }
