@@ -1,37 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Paint App Test</title>
+  <meta charset="UTF-8" />
+  <title>Offline Paint App</title>
 
-  <!-- IMPORTANT: Fabric must load BEFORE script.js -->
+  <!-- Fabric.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
 
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
+      background: #fafafa;
+    }
+
+    h2 {
+      margin-bottom: 10px;
+    }
+
+    .controls {
+      margin-bottom: 15px;
+    }
+
+    input, button {
+      margin: 4px 4px 4px 0;
+      padding: 6px 10px;
+      font-size: 14px;
     }
 
     canvas {
-      border: 2px solid black;
+      border: 2px solid #d32f2f;
       display: block;
-      margin-top: 15px;
+      margin-top: 10px;
+      background: #fff;
+    }
+
+    #colorHistory {
+      margin-top: 12px;
+      padding: 8px;
+      background: #fff;
+      border: 1px solid #ccc;
+      display: inline-block;
+    }
+
+    #colorHistory div {
+      text-align: center;
+      font-size: 12px;
     }
   </style>
 </head>
 
 <body>
 
-  <h2>Fabric Image Test</h2>
+  <h2>Offline Paint App</h2>
 
-  <input type="file" id="imageUpload">
+  <!-- CONTROLS -->
+  <div class="controls">
+    <input type="file" id="imageUpload" accept="image/*" />
+    <br><br>
 
-  <!-- CANVAS MUST EXIST BEFORE script.js -->
-  <canvas id="canvas" width="800" height="500"></canvas>
+    <input
+      type="text"
+      id="colorCode"
+      placeholder="Enter Color Code (AP101)"
+    />
+    <button onclick="applyColor()">Apply Color</button>
 
-  <!-- YOUR SCRIPT LOADS LAST -->
-  <script src="script.js"></script>
+    <br><br>
+
+    <button onclick="undo()">Undo</button>
+    <button onclick="resetCanvas()">Reset</button>
+    <button onclick="downloadImage()">Download</button>
+  </div>
+
+  <!-- CANVAS -->
+  <canvas id="canvas" width="900" height="520"></canvas>
+
+  <!-- COLOR HISTORY -->
+  <h3>Used Colors</h3>
+  <div id="colorHistory"></div>
+
+  <!-- MAIN SCRIPT (CACHE BUSTED) -->
+  <script src="script.js?v=3"></script>
 
 </body>
 </html>
