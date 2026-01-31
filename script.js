@@ -2,19 +2,21 @@
 // CANVAS SETUP
 // ===============================
 const canvas = new fabric.Canvas('canvas', {
-  selection: true
+  selection: true,
+  perPixelTargetFind: true,
+  targetFindTolerance: 15
 });
 
 let currentMode = null;
 let selectedObject = null;
-let history = [];
+let usedColors = [];
 
 // ===============================
-// MODE SELECTION
+// MODE
 // ===============================
 function setMode(mode) {
   currentMode = mode;
-  alert("Click on a " + mode + " area to paint");
+  alert("Tap on a " + mode + " to paint");
 }
 
 // ===============================
@@ -45,21 +47,21 @@ document.getElementById('imageUpload').addEventListener('change', function (e) {
       canvas.add(img);
       canvas.sendToBack(img);
 
-      createAreas();
+      createPaintAreas();
     });
   };
   reader.readAsDataURL(file);
 });
 
 // ===============================
-// CREATE PAINT AREAS
+// CREATE EASY-TO-SELECT AREAS
 // ===============================
-function createAreas() {
+function createPaintAreas() {
   const areas = [
-    { name: 'wall', left: 140, top: 230, width: 320, height: 190 },
-    { name: 'wall', left: 480, top: 230, width: 260, height: 190 },
-    { name: 'roof', left: 180, top: 130, width: 450, height: 90 },
-    { name: 'door', left: 360, top: 290, width: 80, height: 130 }
+    { name: 'wall', left: 120, top: 240, width: 300, height: 200 },
+    { name: 'wall', left: 440, top: 240, width: 260, height: 200 },
+    { name: 'roof', left: 180, top: 140, width: 440, height: 90 },
+    { name: 'door', left: 360, top: 300, width: 80, height: 140 }
   ];
 
   areas.forEach(a => {
@@ -68,13 +70,12 @@ function createAreas() {
       top: a.top,
       width: a.width,
       height: a.height,
-      fill: 'rgba(0,0,0,0)',
+      fill: 'rgba(0,0,0,0.05)', // CLICK FRIENDLY
       selectable: true,
       evented: true,
       name: a.name,
       hasBorders: false,
-      hasControls: true,
-      cornerColor: 'blue'
+      hasControls: true
     });
 
     canvas.add(rect);
@@ -83,13 +84,14 @@ function createAreas() {
 }
 
 // ===============================
-// SELECTION HANDLING
+// EASY CLICK SELECTION
 // ===============================
-canvas.on('mouse:down', function (opt) {
-  if (!opt.target || !currentMode) return;
+canvas.on('mouse:down', function (e) {
+  if (!e.target || !currentMode) return;
 
-  if (opt.target.name === currentMode) {
-    selectedObject = opt.target;
+  if (e.target.name === currentMode) {
+    selectedObject = e.target;
+    canvas.setActiveObject(e.target);
   }
 });
 
@@ -109,35 +111,37 @@ function applyColor() {
   }
 
   const colorMap = {
-    "AP101": "rgba(160,70,50,0.9)",
-    "AP102": "rgba(70,140,80,0.9)",
-    "AP103": "rgba(60,80,150,0.9)"
+    AP101: 'rgba(150,60,45,0.95)',
+    AP102: 'rgba(60,120,70,0.95)',
+    AP103: 'rgba(70,80,150,0.95)'
   };
 
-  const color = colorMap[code] || "rgba(120,120,120,0.9)";
+  const color = colorMap[code] || 'rgba(120,120,120,0.95)';
 
   selectedObject.set({
     fill: color,
     globalCompositeOperation: 'multiply',
-    hasBorders: false
+    hasBorders: false,
+    hasControls: false
   });
 
+  canvas.discardActiveObject();
   canvas.renderAll();
 
-  history.push(code);
+  usedColors.push(code);
   updateHistory();
 
   selectedObject = null;
 }
 
 // ===============================
-// HISTORY UI
+// COLOR HISTORY
 // ===============================
 function updateHistory() {
   const list = document.getElementById('historyList');
   list.innerHTML = '';
 
-  [...new Set(history)].forEach(code => {
+  [...new Set(usedColors)].forEach(code => {
     const div = document.createElement('div');
     div.className = 'history-item';
     div.textContent = code;
@@ -151,7 +155,7 @@ function updateHistory() {
 function undo() {
   const obj = canvas.getActiveObject();
   if (obj) {
-    obj.set('fill', 'rgba(0,0,0,0)');
+    obj.set('fill', 'rgba(0,0,0,0.05)');
     canvas.renderAll();
   }
 }
