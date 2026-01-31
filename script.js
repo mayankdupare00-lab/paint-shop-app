@@ -1,133 +1,147 @@
-const canvas = new fabric.Canvas('canvas', {
-  selection: false,
-  preserveObjectStacking: true
-});
+window.addEventListener("DOMContentLoaded", () => {
 
-let selectedAreas = [];
-let usedColors = {};
+  const canvas = new fabric.Canvas("canvas", {
+    selection: false,
+    preserveObjectStacking: true
+  });
 
-// ================= IMAGE UPLOAD =================
-document.getElementById('imageUpload').addEventListener('change', function (e) {
-  const file = e.target.files[0];
-  if (!file) return;
+  let paintLayers = [];
+  let colorHistory = [];
 
-  const reader = new FileReader();
-  reader.onload = function (event) {
-    fabric.Image.fromURL(event.target.result, function (img) {
-      canvas.clear();
+  // ===============================
+  // IMAGE UPLOAD
+  // ===============================
+  document.getElementById("imageUpload").addEventListener("change", function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-      const scale = Math.min(
-        canvas.width / img.width,
-        canvas.height / img.height
-      );
+    const reader = new FileReader();
 
-      img.scale(scale);
-      img.set({
-        left: 0,
-        top: 0,
+    reader.onload = function (event) {
+      fabric.Image.fromURL(event.target.result, function (img) {
+
+        canvas.clear();
+        paintLayers = [];
+        colorHistory = [];
+        updateHistoryUI();
+
+        canvas.setWidth(900);
+        canvas.setHeight(550);
+
+        const scale = Math.min(
+          canvas.width / img.width,
+          canvas.height / img.height
+        );
+
+        img.set({
+          left: (canvas.width - img.width * scale) / 2,
+          top: (canvas.height - img.height * scale) / 2,
+          scaleX: scale,
+          scaleY: scale,
+          selectable: false,
+          evented: false
+        });
+
+        canvas.add(img);
+        canvas.sendToBack(img);
+        canvas.renderAll();
+      });
+    };
+
+    reader.readAsDataURL(file);
+  });
+
+  // ===============================
+  // APPLY COLOR (CLICK TO PAINT)
+  // ===============================
+  function applyColor() {
+    const code = document.getElementById("colorCode").value.trim().toUpperCase();
+    if (!code) {
+      alert("Enter color code");
+      return;
+    }
+
+    const colorMap = {
+      "AP101": "rgba(180,60,50,0.95)",
+      "AP102": "rgba(60,130,70,0.95)",
+      "AP103": "rgba(60,80,160,0.95)",
+      "AP104": "rgba(120,80,40,0.95)"
+    };
+
+    const color = colorMap[code] || "rgba(120,120,120,0.95)";
+
+    canvas.once("mouse:down", function (opt) {
+      const pointer = canvas.getPointer(opt.e);
+
+      const paint = new fabric.Circle({
+        left: pointer.x - 40,
+        top: pointer.y - 40,
+        radius: 60,
+        fill: color,
         selectable: false,
-        evented: false
+        evented: false,
+        globalCompositeOperation: "multiply"
       });
 
-      canvas.add(img);
-      canvas.sendToBack(img);
+      canvas.add(paint);
+      paintLayers.push(paint);
 
-      createWallAreas();
+      if (!colorHistory.includes(code)) {
+        colorHistory.push(code);
+        addHistoryItem(code, color);
+      }
+
+      canvas.renderAll();
     });
-  };
-
-  reader.readAsDataURL(file);
-});
-
-// ================= WALL AREAS =================
-function createWallAreas() {
-  const walls = [
-    { left: 80, top: 200, width: 260, height: 160 },
-    { left: 360, top: 200, width: 260, height: 160 }
-  ];
-
-  walls.forEach(area => {
-    const rect = new fabric.Rect({
-      ...area,
-      fill: 'rgba(0,0,0,0)',
-      selectable: true,
-      hasBorders: false,
-      hasControls: false,
-      hoverCursor: 'pointer'
-    });
-
-    canvas.add(rect);
-  });
-}
-
-// ================= MULTI SELECTION =================
-canvas.on('mouse:down', function (e) {
-  if (!e.target) return;
-
-  if (!selectedAreas.includes(e.target)) {
-    selectedAreas.push(e.target);
   }
-});
 
-// ================= APPLY DARK COLOR =================
-function applyColor() {
-  const code = document.getElementById('colorCode').value.trim().toUpperCase();
-  if (!code || selectedAreas.length === 0) return;
+  // ===============================
+  // HISTORY UI
+  // ===============================
+  function addHistoryItem(code, color) {
+    const div = document.createElement("div");
+    div.className = "history-item";
+    div.style.background = color;
+    div.innerText = code;
+    document.getElementById("historyList").appendChild(div);
+  }
 
-  const colors = {
-    AP101: '#8b2f2f',
-    AP102: '#2f6b3f',
-    AP103: '#2f3f6b'
-  };
+  function updateHistoryUI() {
+    document.getElementById("historyList").innerHTML = "";
+  }
 
-  const color = colors[code] || '#6b2f2f';
+  // ===============================
+  // UNDO / RESET / DOWNLOAD
+  // ===============================
+  function undo() {
+    const last = paintLayers.pop();
+    if (last) {
+      canvas.remove(last);
+      canvas.renderAll();
+    }
+  }
 
-  selectedAreas.forEach(area => {
-    area.set({
-      fill: color,
-      globalCompositeOperation: 'multiply',
-      opacity: 0.95
+  function resetCanvas() {
+    canvas.clear();
+    paintLayers = [];
+    colorHistory = [];
+    updateHistoryUI();
+  }
+
+  function downloadImage() {
+    const link = document.createElement("a");
+    link.download = "paint-preview.png";
+    link.href = canvas.toDataURL({
+      format: "png",
+      quality: 1
     });
-  });
+    link.click();
+  }
 
-  usedColors[code] = color;
-  selectedAreas = [];
+  // expose functions to HTML
+  window.applyColor = applyColor;
+  window.undo = undo;
+  window.resetCanvas = resetCanvas;
+  window.downloadImage = downloadImage;
 
-  canvas.renderAll();
-  updateHistory();
-}
-
-// ================= COLOR HISTORY =================
-function updateHistory() {
-  let history = document.getElementById('colorHistory');
-  if (!history) return;
-
-  history.innerHTML = '';
-  Object.keys(usedColors).forEach(code => {
-    const div = document.createElement('div');
-    div.style.display = 'inline-block';
-    div.style.marginRight = '10px';
-    div.innerHTML = `
-      <div style="width:24px;height:24px;background:${usedColors[code]};"></div>
-      <small>${code}</small>
-    `;
-    history.appendChild(div);
-  });
-}
-
-// ================= CONTROLS =================
-function undo() {
-  const obj = canvas.getObjects().pop();
-  if (obj) canvas.remove(obj);
-}
-
-function resetCanvas() {
-  canvas.clear();
-}
-
-function downloadImage() {
-  const link = document.createElement('a');
-  link.download = 'paint-preview.png';
-  link.href = canvas.toDataURL();
-  link.click();
-}
+});
