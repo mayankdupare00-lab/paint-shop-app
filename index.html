@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Offline Paint App</title>
+  <meta charset="UTF-8">
+  <title>Paint Visualizer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Fabric.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
@@ -10,68 +11,60 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 20px;
+      padding: 15px;
     }
 
     canvas {
-      border: 2px solid #e53935;
+      border: 2px solid #333;
       margin-top: 10px;
+      max-width: 100%;
     }
 
-    .controls {
-      margin-bottom: 12px;
-    }
-
-    button {
-      margin-right: 6px;
-      margin-top: 6px;
+    .controls button {
+      margin: 4px;
     }
 
     #history {
       margin-top: 15px;
       padding: 10px;
-      border: 1px solid #ccc;
-      max-width: 900px;
+      border: 1px solid #aaa;
+      background: #f9f9f9;
     }
 
     .history-item {
-      display: inline-block;
-      padding: 6px 10px;
-      margin: 4px;
-      border-radius: 4px;
-      color: #fff;
-      font-size: 13px;
+      padding: 4px 0;
+      font-size: 14px;
     }
   </style>
 </head>
-
 <body>
 
-  <h2>Offline Paint App</h2>
+<h2>🎨 Paint Visualizer</h2>
 
-  <div class="controls">
-    <input type="file" id="imageUpload" accept="image/*" />
-    <br><br>
+<div class="controls">
+  <input type="file" id="imageUpload" accept="image/*"><br><br>
 
-    <input type="text" id="colorCode" placeholder="Enter Color Code (AP101)" />
-    <button onclick="applyColor()">Apply Color</button>
+  <button onclick="setMode('wall')">Wall</button>
+  <button onclick="setMode('roof')">Roof</button>
+  <button onclick="setMode('door')">Door</button>
+  <br><br>
 
-    <br><br>
+  <input type="text" id="colorCode" placeholder="Color Code (AP101)">
+  <button onclick="applyColor()">Apply Color</button>
+  <br><br>
 
-    <button onclick="undo()">Undo</button>
-    <button onclick="resetCanvas()">Reset</button>
-    <button onclick="downloadImage()">Download</button>
-  </div>
+  <button onclick="undo()">Undo</button>
+  <button onclick="resetCanvas()">Reset</button>
+  <button onclick="downloadImage()">Download</button>
+</div>
 
-  <canvas id="canvas" width="900" height="550"></canvas>
+<canvas id="canvas" width="800" height="500"></canvas>
 
-  <div id="history">
-    <strong>Used Colors:</strong>
-    <div id="historyList"></div>
-  </div>
+<div id="history">
+  <strong>🎯 Used Colors:</strong>
+  <div id="historyList"></div>
+</div>
 
-  <!-- IMPORTANT: script at bottom -->
-  <script src="script.js"></script>
-
+<script src="script.js"></script>
 </body>
 </html>
