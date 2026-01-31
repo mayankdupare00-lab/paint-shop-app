@@ -18,22 +18,24 @@
       border: 2px solid #333;
       margin-top: 10px;
       max-width: 100%;
+      touch-action: none; /* IMPORTANT for tablets */
     }
 
-    .controls button {
+    button {
       margin: 4px;
+      padding: 6px 10px;
     }
 
     #history {
       margin-top: 15px;
       padding: 10px;
       border: 1px solid #aaa;
-      background: #f9f9f9;
+      background: #f7f7f7;
     }
 
     .history-item {
-      padding: 4px 0;
       font-size: 14px;
+      padding: 3px 0;
     }
   </style>
 </head>
@@ -41,27 +43,25 @@
 
 <h2>🎨 Paint Visualizer</h2>
 
-<div class="controls">
-  <input type="file" id="imageUpload" accept="image/*"><br><br>
+<input type="file" id="imageUpload" accept="image/*"><br><br>
 
-  <button onclick="setMode('wall')">Wall</button>
-  <button onclick="setMode('roof')">Roof</button>
-  <button onclick="setMode('door')">Door</button>
-  <br><br>
+<button onclick="setMode('wall')">Wall</button>
+<button onclick="setMode('roof')">Roof</button>
+<button onclick="setMode('door')">Door</button>
+<br><br>
 
-  <input type="text" id="colorCode" placeholder="Color Code (AP101)">
-  <button onclick="applyColor()">Apply Color</button>
-  <br><br>
+<input type="text" id="colorCode" placeholder="Color Code (AP101)">
+<button onclick="applyColor()">Apply Color</button>
+<br><br>
 
-  <button onclick="undo()">Undo</button>
-  <button onclick="resetCanvas()">Reset</button>
-  <button onclick="downloadImage()">Download</button>
-</div>
+<button onclick="undo()">Undo</button>
+<button onclick="resetCanvas()">Reset</button>
+<button onclick="downloadImage()">Download</button>
 
 <canvas id="canvas" width="800" height="500"></canvas>
 
 <div id="history">
-  <strong>🎯 Used Colors:</strong>
+  <strong>Used Colors:</strong>
   <div id="historyList"></div>
 </div>
 
