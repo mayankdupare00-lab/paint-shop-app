@@ -11,41 +11,36 @@
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
-      background: #fafafa;
-    }
-
-    h2 {
-      margin-bottom: 10px;
-    }
-
-    .controls {
-      margin-bottom: 15px;
-    }
-
-    input, button {
-      margin: 4px 4px 4px 0;
-      padding: 6px 10px;
-      font-size: 14px;
     }
 
     canvas {
-      border: 2px solid #d32f2f;
-      display: block;
+      border: 2px solid #e53935;
       margin-top: 10px;
-      background: #fff;
     }
 
-    #colorHistory {
-      margin-top: 12px;
-      padding: 8px;
-      background: #fff;
+    .controls {
+      margin-bottom: 12px;
+    }
+
+    button {
+      margin-right: 6px;
+      margin-top: 6px;
+    }
+
+    #history {
+      margin-top: 15px;
+      padding: 10px;
       border: 1px solid #ccc;
-      display: inline-block;
+      max-width: 900px;
     }
 
-    #colorHistory div {
-      text-align: center;
-      font-size: 12px;
+    .history-item {
+      display: inline-block;
+      padding: 6px 10px;
+      margin: 4px;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 13px;
     }
   </style>
 </head>
@@ -54,16 +49,11 @@
 
   <h2>Offline Paint App</h2>
 
-  <!-- CONTROLS -->
   <div class="controls">
     <input type="file" id="imageUpload" accept="image/*" />
     <br><br>
 
-    <input
-      type="text"
-      id="colorCode"
-      placeholder="Enter Color Code (AP101)"
-    />
+    <input type="text" id="colorCode" placeholder="Enter Color Code (AP101)" />
     <button onclick="applyColor()">Apply Color</button>
 
     <br><br>
@@ -73,15 +63,15 @@
     <button onclick="downloadImage()">Download</button>
   </div>
 
-  <!-- CANVAS -->
-  <canvas id="canvas" width="900" height="520"></canvas>
+  <canvas id="canvas" width="900" height="550"></canvas>
 
-  <!-- COLOR HISTORY -->
-  <h3>Used Colors</h3>
-  <div id="colorHistory"></div>
+  <div id="history">
+    <strong>Used Colors:</strong>
+    <div id="historyList"></div>
+  </div>
 
-  <!-- MAIN SCRIPT (CACHE BUSTED) -->
-  <script src="script.js?v=3"></script>
+  <!-- IMPORTANT: script at bottom -->
+  <script src="script.js"></script>
 
 </body>
 </html>
