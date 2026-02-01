@@ -17,8 +17,7 @@
     canvas {
       border: 2px solid #333;
       margin-top: 10px;
-      max-width: 100%;
-      touch-action: none; /* IMPORTANT for tablets */
+      touch-action: none;
     }
 
     button {
@@ -32,11 +31,6 @@
       border: 1px solid #aaa;
       background: #f7f7f7;
     }
-
-    .history-item {
-      font-size: 14px;
-      padding: 3px 0;
-    }
   </style>
 </head>
 <body>
@@ -45,16 +39,10 @@
 
 <input type="file" id="imageUpload" accept="image/*"><br><br>
 
-<button onclick="setMode('wall')">Wall</button>
-<button onclick="setMode('roof')">Roof</button>
-<button onclick="setMode('door')">Door</button>
-<br><br>
-
 <input type="text" id="colorCode" placeholder="Color Code (AP101)">
 <button onclick="applyColor()">Apply Color</button>
 <br><br>
 
-<button onclick="undo()">Undo</button>
 <button onclick="resetCanvas()">Reset</button>
 <button onclick="downloadImage()">Download</button>
 
