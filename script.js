@@ -1,10 +1,11 @@
 // ===============================
-// CANVAS SETUP
+// CANVAS SETUP (STABLE)
 // ===============================
 const canvas = new fabric.Canvas('canvas', {
-  selection: true,
-  perPixelTargetFind: true,
-  targetFindTolerance: 15
+  selection: false,
+  skipTargetFind: false,
+  perPixelTargetFind: false,
+  targetFindTolerance: 25 // VERY IMPORTANT for easy selection
 });
 
 let currentMode = null;
@@ -12,15 +13,16 @@ let selectedObject = null;
 let usedColors = [];
 
 // ===============================
-// MODE
+// MODE SELECTION
 // ===============================
 function setMode(mode) {
   currentMode = mode;
-  alert("Tap on a " + mode + " to paint");
+  selectedObject = null;
+  alert("Click on a " + mode + " to paint");
 }
 
 // ===============================
-// IMAGE UPLOAD
+// IMAGE UPLOAD (SAFE)
 // ===============================
 document.getElementById('imageUpload').addEventListener('change', function (e) {
   const file = e.target.files[0];
@@ -48,13 +50,14 @@ document.getElementById('imageUpload').addEventListener('change', function (e) {
       canvas.sendToBack(img);
 
       createPaintAreas();
+      canvas.renderAll();
     });
   };
   reader.readAsDataURL(file);
 });
 
 // ===============================
-// CREATE EASY-TO-SELECT AREAS
+// CREATE CLICK-FRIENDLY AREAS
 // ===============================
 function createPaintAreas() {
   const areas = [
@@ -70,12 +73,13 @@ function createPaintAreas() {
       top: a.top,
       width: a.width,
       height: a.height,
-      fill: 'rgba(0,0,0,0.05)', // CLICK FRIENDLY
+      fill: 'rgba(0,0,0,0.08)', // invisible but VERY clickable
       selectable: true,
       evented: true,
       name: a.name,
       hasBorders: false,
-      hasControls: true
+      hasControls: false,
+      hoverCursor: 'pointer'
     });
 
     canvas.add(rect);
@@ -84,14 +88,16 @@ function createPaintAreas() {
 }
 
 // ===============================
-// EASY CLICK SELECTION
+// EASY & SAFE SELECTION (NO ERROR)
 // ===============================
 canvas.on('mouse:down', function (e) {
-  if (!e.target || !currentMode) return;
+  if (!currentMode) return;
+  if (!e.target) return;
 
   if (e.target.name === currentMode) {
     selectedObject = e.target;
-    canvas.setActiveObject(e.target);
+  } else {
+    selectedObject = null;
   }
 });
 
@@ -100,7 +106,7 @@ canvas.on('mouse:down', function (e) {
 // ===============================
 function applyColor() {
   if (!selectedObject) {
-    alert("Select an area first");
+    alert("Please select an area first");
     return;
   }
 
@@ -111,26 +117,24 @@ function applyColor() {
   }
 
   const colorMap = {
-    AP101: 'rgba(150,60,45,0.95)',
-    AP102: 'rgba(60,120,70,0.95)',
-    AP103: 'rgba(70,80,150,0.95)'
+    AP101: 'rgba(145,55,45,0.95)',
+    AP102: 'rgba(55,110,65,0.95)',
+    AP103: 'rgba(60,70,140,0.95)'
   };
 
   const color = colorMap[code] || 'rgba(120,120,120,0.95)';
 
   selectedObject.set({
     fill: color,
-    globalCompositeOperation: 'multiply',
-    hasBorders: false,
-    hasControls: false
+    globalCompositeOperation: 'multiply'
   });
 
-  canvas.discardActiveObject();
   canvas.renderAll();
 
   usedColors.push(code);
   updateHistory();
 
+  // IMPORTANT: reset selection cleanly
   selectedObject = null;
 }
 
@@ -139,11 +143,11 @@ function applyColor() {
 // ===============================
 function updateHistory() {
   const list = document.getElementById('historyList');
-  list.innerHTML = '';
+  if (!list) return;
 
+  list.innerHTML = '';
   [...new Set(usedColors)].forEach(code => {
     const div = document.createElement('div');
-    div.className = 'history-item';
     div.textContent = code;
     list.appendChild(div);
   });
@@ -153,11 +157,14 @@ function updateHistory() {
 // CONTROLS
 // ===============================
 function undo() {
-  const obj = canvas.getActiveObject();
-  if (obj) {
-    obj.set('fill', 'rgba(0,0,0,0.05)');
-    canvas.renderAll();
-  }
+  // simple safe undo
+  canvas.getObjects().forEach(obj => {
+    if (obj.name && obj.fill && obj.fill !== 'rgba(0,0,0,0.08)') {
+      obj.set('fill', 'rgba(0,0,0,0.08)');
+      canvas.renderAll();
+      return;
+    }
+  });
 }
 
 function resetCanvas() {
