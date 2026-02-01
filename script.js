@@ -2,14 +2,12 @@
 // CANVAS SETUP
 // ===============================
 const canvas = new fabric.Canvas('canvas', {
-  selection: false
+  selection: true,
+  preserveObjectStacking: true
 });
 
-let imgObject = null;
-let points = [];
-let tempPolygon = null;
-let selectedPolygon = null;
-let usedColors = [];
+let baseImage = null;
+let activePaintObject = null;
 
 // ===============================
 // IMAGE UPLOAD
@@ -36,141 +34,142 @@ document.getElementById('imageUpload').addEventListener('change', function (e) {
         evented: false
       });
 
+      baseImage = img;
       canvas.add(img);
       canvas.sendToBack(img);
-      imgObject = img;
     });
   };
   reader.readAsDataURL(file);
 });
 
 // ===============================
-// DRAW POLYGON (CLICK / SHIFT+CLICK)
+// FREE POLYGON SELECTION
 // ===============================
+let drawing = false;
+let points = [];
+let tempPolyline = null;
+
 canvas.on('mouse:down', function (opt) {
+  if (!opt.e.shiftKey) return;
+
   const pointer = canvas.getPointer(opt.e);
 
-  // SHIFT + CLICK → start new selection
-  if (opt.e.shiftKey) {
-    clearTemp();
-    addPoint(pointer);
-    return;
-  }
+  if (!drawing) {
+    drawing = true;
+    points = [{ x: pointer.x, y: pointer.y }];
 
-  // Normal click → add point
-  addPoint(pointer);
+    tempPolyline = new fabric.Polyline(points, {
+      stroke: '#ff9800',
+      strokeWidth: 2,
+      fill: 'rgba(0,0,0,0)',
+      selectable: false,
+      evented: false
+    });
+
+    canvas.add(tempPolyline);
+  } else {
+    points.push({ x: pointer.x, y: pointer.y });
+    tempPolyline.set({ points });
+    canvas.renderAll();
+  }
 });
 
-// ===============================
-// DOUBLE CLICK → FINISH SELECTION
-// ===============================
 canvas.on('mouse:dblclick', function () {
-  if (points.length < 3) return;
+  if (!drawing) return;
+
+  drawing = false;
+  canvas.remove(tempPolyline);
 
   const polygon = new fabric.Polygon(points, {
-    fill: 'rgba(0,0,0,0.1)',
+    fill: 'rgba(120,120,120,0.9)',
     selectable: true,
+    objectCaching: false,
     hasBorders: false,
-    hasControls: false
+    hasControls: false,
+    globalCompositeOperation: 'multiply',
+    shadow: new fabric.Shadow({
+      color: 'rgba(0,0,0,0.35)',
+      blur: 15
+    })
   });
 
   canvas.add(polygon);
   canvas.setActiveObject(polygon);
-  selectedPolygon = polygon;
-
-  clearTemp();
+  activePaintObject = polygon;
+  canvas.renderAll();
 });
 
 // ===============================
-// ADD POINT
+// SELECTION HANDLING
 // ===============================
-function addPoint(pointer) {
-  points.push({ x: pointer.x, y: pointer.y });
-
-  if (tempPolygon) {
-    canvas.remove(tempPolygon);
-  }
-
-  tempPolygon = new fabric.Polygon(points, {
-    fill: 'rgba(0,0,0,0.05)',
-    selectable: false,
-    evented: false
-  });
-
-  canvas.add(tempPolygon);
-}
-
-// ===============================
-// CLEAR TEMP SHAPE
-// ===============================
-function clearTemp() {
-  points = [];
-  if (tempPolygon) {
-    canvas.remove(tempPolygon);
-    tempPolygon = null;
-  }
-}
+canvas.on('selection:created', e => {
+  activePaintObject = e.selected[0];
+});
+canvas.on('selection:updated', e => {
+  activePaintObject = e.selected[0];
+});
 
 // ===============================
 // APPLY DARK REALISTIC COLOR
 // ===============================
 function applyColor() {
-  if (!selectedPolygon) {
+  if (!activePaintObject) {
     alert("Select or draw an area first");
     return;
   }
 
-  const code = document.getElementById('colorCode').value.trim();
-  if (!code) {
-    alert("Enter color code");
-    return;
-  }
+  const code = document.getElementById('colorCode').value.trim().toUpperCase();
 
   const colorMap = {
-    AP101: 'rgba(140,45,35,0.97)',
-    AP102: 'rgba(45,110,60,0.97)',
-    AP103: 'rgba(55,65,135,0.97)'
+    AP101: 'rgba(160,60,50,0.95)',   // deep red
+    AP102: 'rgba(60,120,60,0.95)',  // dark green
+    AP103: 'rgba(60,70,140,0.95)',  // deep blue
+    AP104: 'rgba(90,90,90,0.95)',   // charcoal
+    AP105: 'rgba(180,150,90,0.95)'  // beige
   };
 
-  const color = colorMap[code] || 'rgba(100,100,100,0.97)';
+  const color = colorMap[code] || 'rgba(150,75,60,0.95)';
 
-  selectedPolygon.set({
+  activePaintObject.set({
     fill: color,
-    globalCompositeOperation: 'multiply'
+    globalCompositeOperation: 'multiply',
+    opacity: 1
   });
 
   canvas.renderAll();
-
-  usedColors.push(code);
-  updateHistory();
-
-  selectedPolygon = null;
 }
 
 // ===============================
-// COLOR HISTORY
+// UNDO LAST PAINT
 // ===============================
-function updateHistory() {
-  const list = document.getElementById('historyList');
-  list.innerHTML = '';
-
-  [...new Set(usedColors)].forEach(code => {
-    const div = document.createElement('div');
-    div.textContent = code;
-    list.appendChild(div);
-  });
+function undo() {
+  if (activePaintObject) {
+    canvas.remove(activePaintObject);
+    activePaintObject = null;
+    canvas.renderAll();
+  }
 }
 
 // ===============================
-// CONTROLS
+// RESET
 // ===============================
 function resetCanvas() {
   canvas.clear();
+  if (baseImage) {
+    canvas.add(baseImage);
+    canvas.sendToBack(baseImage);
+  }
 }
 
+// ===============================
+// DOWNLOAD
+// ===============================
 function downloadImage() {
   const link = document.createElement('a');
   link.download = 'paint-preview.png';
-  link.href = canvas.toDataURL();
+  link.href = canvas.toDataURL({
+    format: 'png',
+    multiplier: 2
+  });
   link.click();
 }
