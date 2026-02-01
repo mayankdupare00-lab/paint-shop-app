@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Paint Visualizer</title>
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Fabric.js -->
@@ -15,44 +16,45 @@
     }
 
     canvas {
-      border: 2px solid #333;
+      border: 2px solid #444;
       margin-top: 10px;
       touch-action: none;
     }
 
-    button {
-      margin: 4px;
-      padding: 6px 10px;
+    .controls {
+      margin-bottom: 10px;
     }
 
-    #history {
-      margin-top: 15px;
-      padding: 10px;
-      border: 1px solid #aaa;
-      background: #f7f7f7;
+    input, button {
+      margin: 4px 4px 4px 0;
+      padding: 6px;
     }
   </style>
 </head>
+
 <body>
 
-<h2>🎨 Paint Visualizer</h2>
+  <h2>🎨 Paint Visualizer</h2>
 
-<input type="file" id="imageUpload" accept="image/*"><br><br>
+  <div class="controls">
+    <input type="file" id="imageUpload" accept="image/*">
 
-<input type="text" id="colorCode" placeholder="Color Code (AP101)">
-<button onclick="applyColor()">Apply Color</button>
-<br><br>
+    <br><br>
 
-<button onclick="resetCanvas()">Reset</button>
-<button onclick="downloadImage()">Download</button>
+    <input type="text" id="colorCode" placeholder="Enter Color Code (AP101)">
+    <button onclick="applyColor()">Apply Color</button>
 
-<canvas id="canvas" width="800" height="500"></canvas>
+    <br><br>
 
-<div id="history">
-  <strong>Used Colors:</strong>
-  <div id="historyList"></div>
-</div>
+    <button onclick="undo()">Undo</button>
+    <button onclick="resetCanvas()">Reset</button>
+    <button onclick="downloadImage()">Download</button>
+  </div>
 
-<script src="script.js"></script>
+  <canvas id="canvas" width="800" height="500"></canvas>
+
+  <!-- YOUR SCRIPT -->
+  <script src="script.js"></script>
+
 </body>
 </html>
