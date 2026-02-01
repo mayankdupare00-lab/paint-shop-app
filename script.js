@@ -120,21 +120,27 @@ function applyColor() {
 
   const code = document.getElementById('colorCode').value.trim().toUpperCase();
 
-  const colorMap = {
-    AP101: 'rgba(160,60,50,0.95)',   // deep red
-    AP102: 'rgba(60,120,60,0.95)',  // dark green
-    AP103: 'rgba(60,70,140,0.95)',  // deep blue
-    AP104: 'rgba(90,90,90,0.95)',   // charcoal
-    AP105: 'rgba(180,150,90,0.95)'  // beige
-  };
+ const colorMap = {
+  AP101: 'rgba(120,40,35,1)',   // deep red (solid)
+  AP102: 'rgba(45,90,45,1)',    // dark green
+  AP103: 'rgba(45,55,110,1)',   // navy blue
+  AP104: 'rgba(65,65,65,1)',    // dark charcoal
+  AP105: 'rgba(150,120,70,1)'   // rich beige
+};
+
 
   const color = colorMap[code] || 'rgba(150,75,60,0.95)';
 
-  activePaintObject.set({
-    fill: color,
-    globalCompositeOperation: 'multiply',
-    opacity: 1
-  });
+activePaintObject.set({
+  fill: color,
+  opacity: 1,
+  globalCompositeOperation: 'overlay',
+  shadow: new fabric.Shadow({
+    color: 'rgba(0,0,0,0.45)',
+    blur: 18
+  })
+});
+
 
   canvas.renderAll();
 }
