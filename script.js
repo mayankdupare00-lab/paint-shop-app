@@ -1,28 +1,18 @@
 // ===============================
-// CANVAS SETUP (STABLE)
+// CANVAS SETUP
 // ===============================
 const canvas = new fabric.Canvas('canvas', {
-  selection: false,
-  skipTargetFind: false,
-  perPixelTargetFind: false,
-  targetFindTolerance: 25 // VERY IMPORTANT for easy selection
+  selection: false
 });
 
-let currentMode = null;
-let selectedObject = null;
+let imgObject = null;
+let points = [];
+let tempPolygon = null;
+let selectedPolygon = null;
 let usedColors = [];
 
 // ===============================
-// MODE SELECTION
-// ===============================
-function setMode(mode) {
-  currentMode = mode;
-  selectedObject = null;
-  alert("Click on a " + mode + " to paint");
-}
-
-// ===============================
-// IMAGE UPLOAD (SAFE)
+// IMAGE UPLOAD
 // ===============================
 document.getElementById('imageUpload').addEventListener('change', function (e) {
   const file = e.target.files[0];
@@ -48,65 +38,85 @@ document.getElementById('imageUpload').addEventListener('change', function (e) {
 
       canvas.add(img);
       canvas.sendToBack(img);
-
-      createPaintAreas();
-      canvas.renderAll();
+      imgObject = img;
     });
   };
   reader.readAsDataURL(file);
 });
 
 // ===============================
-// CREATE CLICK-FRIENDLY AREAS
+// DRAW POLYGON (CLICK / SHIFT+CLICK)
 // ===============================
-function createPaintAreas() {
-  const areas = [
-    { name: 'wall', left: 120, top: 240, width: 300, height: 200 },
-    { name: 'wall', left: 440, top: 240, width: 260, height: 200 },
-    { name: 'roof', left: 180, top: 140, width: 440, height: 90 },
-    { name: 'door', left: 360, top: 300, width: 80, height: 140 }
-  ];
+canvas.on('mouse:down', function (opt) {
+  const pointer = canvas.getPointer(opt.e);
 
-  areas.forEach(a => {
-    const rect = new fabric.Rect({
-      left: a.left,
-      top: a.top,
-      width: a.width,
-      height: a.height,
-      fill: 'rgba(0,0,0,0.08)', // invisible but VERY clickable
-      selectable: true,
-      evented: true,
-      name: a.name,
-      hasBorders: false,
-      hasControls: false,
-      hoverCursor: 'pointer'
-    });
+  // SHIFT + CLICK → start new selection
+  if (opt.e.shiftKey) {
+    clearTemp();
+    addPoint(pointer);
+    return;
+  }
 
-    canvas.add(rect);
-    canvas.bringToFront(rect);
+  // Normal click → add point
+  addPoint(pointer);
+});
+
+// ===============================
+// DOUBLE CLICK → FINISH SELECTION
+// ===============================
+canvas.on('mouse:dblclick', function () {
+  if (points.length < 3) return;
+
+  const polygon = new fabric.Polygon(points, {
+    fill: 'rgba(0,0,0,0.1)',
+    selectable: true,
+    hasBorders: false,
+    hasControls: false
   });
+
+  canvas.add(polygon);
+  canvas.setActiveObject(polygon);
+  selectedPolygon = polygon;
+
+  clearTemp();
+});
+
+// ===============================
+// ADD POINT
+// ===============================
+function addPoint(pointer) {
+  points.push({ x: pointer.x, y: pointer.y });
+
+  if (tempPolygon) {
+    canvas.remove(tempPolygon);
+  }
+
+  tempPolygon = new fabric.Polygon(points, {
+    fill: 'rgba(0,0,0,0.05)',
+    selectable: false,
+    evented: false
+  });
+
+  canvas.add(tempPolygon);
 }
 
 // ===============================
-// EASY & SAFE SELECTION (NO ERROR)
+// CLEAR TEMP SHAPE
 // ===============================
-canvas.on('mouse:down', function (e) {
-  if (!currentMode) return;
-  if (!e.target) return;
-
-  if (e.target.name === currentMode) {
-    selectedObject = e.target;
-  } else {
-    selectedObject = null;
+function clearTemp() {
+  points = [];
+  if (tempPolygon) {
+    canvas.remove(tempPolygon);
+    tempPolygon = null;
   }
-});
+}
 
 // ===============================
 // APPLY DARK REALISTIC COLOR
 // ===============================
 function applyColor() {
-  if (!selectedObject) {
-    alert("Please select an area first");
+  if (!selectedPolygon) {
+    alert("Select or draw an area first");
     return;
   }
 
@@ -117,14 +127,14 @@ function applyColor() {
   }
 
   const colorMap = {
-    AP101: 'rgba(145,55,45,0.95)',
-    AP102: 'rgba(55,110,65,0.95)',
-    AP103: 'rgba(60,70,140,0.95)'
+    AP101: 'rgba(140,45,35,0.97)',
+    AP102: 'rgba(45,110,60,0.97)',
+    AP103: 'rgba(55,65,135,0.97)'
   };
 
-  const color = colorMap[code] || 'rgba(120,120,120,0.95)';
+  const color = colorMap[code] || 'rgba(100,100,100,0.97)';
 
-  selectedObject.set({
+  selectedPolygon.set({
     fill: color,
     globalCompositeOperation: 'multiply'
   });
@@ -134,8 +144,7 @@ function applyColor() {
   usedColors.push(code);
   updateHistory();
 
-  // IMPORTANT: reset selection cleanly
-  selectedObject = null;
+  selectedPolygon = null;
 }
 
 // ===============================
@@ -143,9 +152,8 @@ function applyColor() {
 // ===============================
 function updateHistory() {
   const list = document.getElementById('historyList');
-  if (!list) return;
-
   list.innerHTML = '';
+
   [...new Set(usedColors)].forEach(code => {
     const div = document.createElement('div');
     div.textContent = code;
@@ -156,17 +164,6 @@ function updateHistory() {
 // ===============================
 // CONTROLS
 // ===============================
-function undo() {
-  // simple safe undo
-  canvas.getObjects().forEach(obj => {
-    if (obj.name && obj.fill && obj.fill !== 'rgba(0,0,0,0.08)') {
-      obj.set('fill', 'rgba(0,0,0,0.08)');
-      canvas.renderAll();
-      return;
-    }
-  });
-}
-
 function resetCanvas() {
   canvas.clear();
 }
