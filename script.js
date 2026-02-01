@@ -1,190 +1,169 @@
-// ===============================
-// CANVAS SETUP
-// ===============================
-const canvas = new fabric.Canvas('canvas', {
-  selection: true,
-  preserveObjectStacking: true
-});
+document.addEventListener("DOMContentLoaded", () => {
 
-let baseImage = null;
-let activePaintObject = null;
+  // ===============================
+  // CANVAS SETUP
+  // ===============================
+  const canvas = new fabric.Canvas('canvas', {
+    selection: true,
+    preserveObjectStacking: true
+  });
 
-// ===============================
-// IMAGE UPLOAD
-// ===============================
-document.getElementById('imageUpload').addEventListener('change', function (e) {
-  const file = e.target.files[0];
-  if (!file) return;
+  let baseImage = null;
+  let activePaintObject = null;
 
-  const reader = new FileReader();
-  reader.onload = function (event) {
-    fabric.Image.fromURL(event.target.result, function (img) {
-      canvas.clear();
+  // ===============================
+  // IMAGE UPLOAD (STABLE)
+  // ===============================
+  document.getElementById('imageUpload').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-      const scale = Math.min(
-        canvas.width / img.width,
-        canvas.height / img.height
-      );
+    const reader = new FileReader();
 
-      img.scale(scale);
-      img.set({
-        left: (canvas.width - img.width * scale) / 2,
-        top: (canvas.height - img.height * scale) / 2,
+    reader.onload = ev => {
+      fabric.Image.fromURL(ev.target.result, img => {
+
+        canvas.clear();
+
+        const scale = Math.min(
+          canvas.width / img.width,
+          canvas.height / img.height
+        );
+
+        img.scale(scale);
+        img.set({
+          left: (canvas.width - img.width * scale) / 2,
+          top: (canvas.height - img.height * scale) / 2,
+          selectable: false,
+          evented: false
+        });
+
+        baseImage = img;
+        canvas.add(img);
+        canvas.sendToBack(img);
+        canvas.renderAll();
+
+        console.log("✅ Image loaded");
+      });
+    };
+
+    reader.readAsDataURL(file);
+  });
+
+  // ===============================
+  // FREE POLYGON DRAW (SHIFT + CLICK)
+  // ===============================
+  let drawing = false;
+  let points = [];
+  let tempLine = null;
+
+  canvas.on('mouse:down', opt => {
+    if (!opt.e.shiftKey) return;
+
+    const p = canvas.getPointer(opt.e);
+
+    if (!drawing) {
+      drawing = true;
+      points = [{ x: p.x, y: p.y }];
+
+      tempLine = new fabric.Polyline(points, {
+        stroke: '#ff9800',
+        strokeWidth: 2,
+        fill: null,
         selectable: false,
         evented: false
       });
 
-      baseImage = img;
-      canvas.add(img);
-      canvas.sendToBack(img);
+      canvas.add(tempLine);
+    } else {
+      points.push({ x: p.x, y: p.y });
+      tempLine.set({ points });
+      canvas.renderAll();
+    }
+  });
+
+  canvas.on('mouse:dblclick', () => {
+    if (!drawing) return;
+
+    drawing = false;
+    canvas.remove(tempLine);
+
+    const polygon = new fabric.Polygon(points, {
+      fill: 'rgba(0,0,0,0.15)',
+      selectable: true,
+      hasBorders: false,
+      hasControls: false,
+      globalCompositeOperation: 'multiply'
     });
+
+    canvas.add(polygon);
+    canvas.setActiveObject(polygon);
+    activePaintObject = polygon;
+    canvas.renderAll();
+  });
+
+  // ===============================
+  // SELECTION
+  // ===============================
+  canvas.on('selection:created', e => activePaintObject = e.selected[0]);
+  canvas.on('selection:updated', e => activePaintObject = e.selected[0]);
+
+  // ===============================
+  // APPLY DARK REALISTIC PAINT
+  // ===============================
+  window.applyColor = () => {
+    if (!activePaintObject) {
+      alert("Draw or select an area first");
+      return;
+    }
+
+    const code = document.getElementById('colorCode').value.trim().toUpperCase();
+
+    const colorMap = {
+      AP101: 'rgb(110,30,25)',
+      AP102: 'rgb(40,80,40)',
+      AP103: 'rgb(40,50,100)',
+      AP104: 'rgb(55,55,55)',
+      AP105: 'rgb(140,110,65)'
+    };
+
+    activePaintObject.set({
+      fill: colorMap[code] || 'rgb(120,60,50)',
+      opacity: 1,
+      globalCompositeOperation: 'multiply',
+      shadow: new fabric.Shadow({
+        color: 'rgba(0,0,0,0.6)',
+        blur: 24
+      })
+    });
+
+    canvas.renderAll();
   };
-  reader.readAsDataURL(file);
+
+  // ===============================
+  // TOOLS
+  // ===============================
+  window.undo = () => {
+    if (activePaintObject) {
+      canvas.remove(activePaintObject);
+      activePaintObject = null;
+      canvas.renderAll();
+    }
+  };
+
+  window.resetCanvas = () => {
+    canvas.clear();
+    if (baseImage) {
+      canvas.add(baseImage);
+      canvas.sendToBack(baseImage);
+    }
+  };
+
+  window.downloadImage = () => {
+    const link = document.createElement('a');
+    link.download = 'paint-preview.png';
+    link.href = canvas.toDataURL({ multiplier: 2 });
+    link.click();
+  };
+
 });
-
-// ===============================
-// FREE POLYGON SELECTION
-// ===============================
-let drawing = false;
-let points = [];
-let tempPolyline = null;
-
-canvas.on('mouse:down', function (opt) {
-  if (!opt.e.shiftKey) return;
-
-  const pointer = canvas.getPointer(opt.e);
-
-  if (!drawing) {
-    drawing = true;
-    points = [{ x: pointer.x, y: pointer.y }];
-
-    tempPolyline = new fabric.Polyline(points, {
-      stroke: '#ff9800',
-      strokeWidth: 2,
-      fill: 'rgba(0,0,0,0)',
-      selectable: false,
-      evented: false
-    });
-
-    canvas.add(tempPolyline);
-  } else {
-    points.push({ x: pointer.x, y: pointer.y });
-    tempPolyline.set({ points });
-    canvas.renderAll();
-  }
-});
-
-canvas.on('mouse:dblclick', function () {
-  if (!drawing) return;
-
-  drawing = false;
-  canvas.remove(tempPolyline);
-
-  const polygon = new fabric.Polygon(points, {
-    fill: 'rgba(120,120,120,0.9)',
-    selectable: true,
-    objectCaching: false,
-    hasBorders: false,
-    hasControls: false,
-    globalCompositeOperation: 'multiply',
-    shadow: new fabric.Shadow({
-      color: 'rgba(0,0,0,0.35)',
-      blur: 15
-    })
-  });
-
-  canvas.add(polygon);
-  canvas.setActiveObject(polygon);
-  activePaintObject = polygon;
-  canvas.renderAll();
-});
-
-// ===============================
-// SELECTION HANDLING
-// ===============================
-canvas.on('selection:created', e => {
-  activePaintObject = e.selected[0];
-});
-canvas.on('selection:updated', e => {
-  activePaintObject = e.selected[0];
-});
-
-// ===============================
-// APPLY DARK REALISTIC COLOR
-// ===============================
-function applyColor() {
-  if (!activePaintObject) {
-    alert("Select or draw an area first");
-    return;
-  }
-
-  const code = document.getElementById('colorCode').value.trim().toUpperCase();
-
-const colorMap = {
-  AP101: 'rgb(110,30,25)',   // deep brick red
-  AP102: 'rgb(40,80,40)',    // forest green
-  AP103: 'rgb(40,50,100)',   // deep blue
-  AP104: 'rgb(55,55,55)',    // charcoal grey
-  AP105: 'rgb(140,110,65)'   // warm beige
-};
-
-
-  const color = colorMap[code] || 'rgba(150,75,60,0.95)';
-
-activePaintObject.set({
-  fill: color,
-
-  // solid paint
-  opacity: 1,
-
-  // realistic pigment interaction
-  globalCompositeOperation: 'multiply',
-
-  // simulate thick roller paint
-  shadow: new fabric.Shadow({
-    color: 'rgba(0,0,0,0.55)',
-    blur: 22,
-    offsetX: 0,
-    offsetY: 0
-  }),
-
-  // slightly soften edges like real paint
-  stroke: 'rgba(0,0,0,0.15)',
-  strokeWidth: 1
-});
-
-canvas.requestRenderAll();
-// ===============================
-// UNDO LAST PAINT
-// ===============================
-function undo() {
-  if (activePaintObject) {
-    canvas.remove(activePaintObject);
-    activePaintObject = null;
-    canvas.renderAll();
-  }
-}
-
-// ===============================
-// RESET
-// ===============================
-function resetCanvas() {
-  canvas.clear();
-  if (baseImage) {
-    canvas.add(baseImage);
-    canvas.sendToBack(baseImage);
-  }
-}
-
-// ===============================
-// DOWNLOAD
-// ===============================
-function downloadImage() {
-  const link = document.createElement('a');
-  link.download = 'paint-preview.png';
-  link.href = canvas.toDataURL({
-    format: 'png',
-    multiplier: 2
-  });
-  link.click();
-}
