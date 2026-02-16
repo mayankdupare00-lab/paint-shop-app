@@ -1,8 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-  // ===============================
-  // CANVAS SETUP
-  // ===============================
   const canvas = new fabric.Canvas('canvas', {
     selection: true,
     preserveObjectStacking: true
@@ -10,16 +7,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let baseImage = null;
   let activePaintObject = null;
+  const usedColors = new Map(); // colorCode → colorValue
 
   // ===============================
-  // IMAGE UPLOAD (STABLE)
+  // IMAGE UPLOAD
   // ===============================
   document.getElementById('imageUpload').addEventListener('change', e => {
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-
     reader.onload = ev => {
       fabric.Image.fromURL(ev.target.result, img => {
 
@@ -42,11 +39,8 @@ document.addEventListener("DOMContentLoaded", () => {
         canvas.add(img);
         canvas.sendToBack(img);
         canvas.renderAll();
-
-        console.log("✅ Image loaded");
       });
     };
-
     reader.readAsDataURL(file);
   });
 
@@ -69,7 +63,6 @@ document.addEventListener("DOMContentLoaded", () => {
       tempLine = new fabric.Polyline(points, {
         stroke: '#ff9800',
         strokeWidth: 2,
-        fill: null,
         selectable: false,
         evented: false
       });
@@ -102,14 +95,11 @@ document.addEventListener("DOMContentLoaded", () => {
     canvas.renderAll();
   });
 
-  // ===============================
-  // SELECTION
-  // ===============================
   canvas.on('selection:created', e => activePaintObject = e.selected[0]);
   canvas.on('selection:updated', e => activePaintObject = e.selected[0]);
 
   // ===============================
-  // APPLY DARK REALISTIC PAINT
+  // APPLY COLOR + HISTORY
   // ===============================
   window.applyColor = () => {
     if (!activePaintObject) {
@@ -127,8 +117,10 @@ document.addEventListener("DOMContentLoaded", () => {
       AP105: 'rgb(140,110,65)'
     };
 
+    const color = colorMap[code] || 'rgb(120,60,50)';
+
     activePaintObject.set({
-      fill: colorMap[code] || 'rgb(120,60,50)',
+      fill: color,
       opacity: 1,
       globalCompositeOperation: 'multiply',
       shadow: new fabric.Shadow({
@@ -138,7 +130,34 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     canvas.renderAll();
+
+    // SAVE TO HISTORY
+    if (!usedColors.has(code)) {
+      usedColors.set(code, color);
+      renderHistory();
+    }
   };
+
+  function renderHistory() {
+    const container = document.getElementById('historyItems');
+    container.innerHTML = '';
+
+    usedColors.forEach((color, code) => {
+      const item = document.createElement('div');
+      item.className = 'history-item';
+
+      const box = document.createElement('div');
+      box.className = 'color-box';
+      box.style.background = color;
+
+      const label = document.createElement('span');
+      label.textContent = code;
+
+      item.appendChild(box);
+      item.appendChild(label);
+      container.appendChild(item);
+    });
+  }
 
   // ===============================
   // TOOLS
@@ -153,6 +172,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.resetCanvas = () => {
     canvas.clear();
+    usedColors.clear();
+    renderHistory();
     if (baseImage) {
       canvas.add(baseImage);
       canvas.sendToBack(baseImage);
