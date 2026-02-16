@@ -29,6 +29,36 @@
       margin: 4px 4px 4px 0;
       padding: 6px;
     }
+
+    /* HISTORY PANEL */
+    .history {
+      margin-top: 15px;
+      padding: 10px;
+      border-top: 2px solid #ddd;
+    }
+
+    .history-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid #ccc;
+      padding: 5px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .color-box {
+      width: 18px;
+      height: 18px;
+      border: 1px solid #000;
+    }
   </style>
 </head>
 
@@ -53,7 +83,12 @@
 
   <canvas id="canvas" width="800" height="500"></canvas>
 
-  <!-- YOUR SCRIPT -->
+  <!-- HISTORY -->
+  <div class="history">
+    <strong>🎯 Colors Used</strong>
+    <div id="historyItems" class="history-items"></div>
+  </div>
+
   <script src="script.js"></script>
 
 </body>
